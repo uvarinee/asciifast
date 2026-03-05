@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 
-const SYMBOLS = " .,:;irsXA253hMHGS#9B&@"
+const SYMBOLS = " .,:1i7r352x4ea6k890dNM#&@"
 
 const PRESETS = {
   balanced: { charSize: 10, variation: 0, density: 8, contrast: 100, brightness: 100, depth: 100 },
@@ -24,7 +24,9 @@ const PRESET_BUTTONS = [
 
 const SPLASH_DURATION_MS = 2000
 const SPLASH_FADE_MS = 220
-
+const ANIM_CYCLE_MS = 6000
+const EXPORT_FPS = 30
+const EXPORT_FRAMES = EXPORT_FPS * 6
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max)
 }
@@ -32,6 +34,85 @@ function clamp(value, min, max) {
 function stableNoise(a, b, c = 0) {
   const value = Math.sin((a + 1) * 12.9898 + (b + 1) * 78.233 + (c + 1) * 37.719) * 43758.5453
   return value - Math.floor(value)
+}
+
+function renderAsciiFrame(targetCanvas, data, opts) {
+  if (!data || !targetCanvas) return
+  const scale = opts.scale ?? 1
+  const charSz = opts.charSize ?? 10
+  const inverted = opts.isInverted ?? false
+  const fill = opts.fillBackground ?? false
+  const animT = opts.t
+  const chaos = (opts.animChaos ?? 0) / 100
+  const amp = (opts.animAmplitude ?? 0) / 100
+  const aDensity = (opts.animDensity ?? 0) / 100
+
+  const baseW = Math.max(1, Math.ceil(data.sourceWidth))
+  const baseH = Math.max(1, Math.ceil(data.sourceHeight))
+  const cw = opts.canvasWidth ?? baseW * scale
+  const ch = opts.canvasHeight ?? baseH * scale
+
+  if (targetCanvas.width !== cw || targetCanvas.height !== ch) {
+    targetCanvas.width = cw
+    targetCanvas.height = ch
+  }
+
+  const ctx = targetCanvas.getContext("2d")
+  if (!ctx) return
+  ctx.setTransform(scale, 0, 0, scale, 0, 0)
+
+  const drawW = cw / scale
+  const drawH = ch / scale
+
+  if (fill) {
+    ctx.fillStyle = inverted ? "#000000" : "#ffffff"
+    ctx.fillRect(0, 0, drawW, drawH)
+  } else {
+    ctx.clearRect(0, 0, drawW, drawH)
+  }
+
+  ctx.textAlign = "center"
+  ctx.textBaseline = "middle"
+  ctx.fillStyle = inverted ? "#ffffff" : "#000000"
+
+  const TWO_PI = Math.PI * 2
+  const symLen = SYMBOLS.length - 1
+  const animated = animT != null && (chaos > 0 || amp > 0) && aDensity > 0
+
+  for (let row = 0; row < data.rowsCount; row++) {
+    const rowCells = data.cells[row]
+    for (let col = 0; col < data.columns; col++) {
+      const cell = rowCells?.[col]
+      if (!cell || cell.char === " ") continue
+
+      let char = cell.char
+      let sizeMul = cell.sizeMul
+
+      if (animated && stableNoise(row, col, 7777) < aDensity) {
+        const phase = stableNoise(row, col, 1234) * TWO_PI
+        const sizePhase = stableNoise(row, col, 5678) * TWO_PI
+
+        if (chaos > 0) {
+          const baseIdx = SYMBOLS.indexOf(cell.char)
+          const shift = Math.sin(TWO_PI * animT + phase) * chaos
+          const newIdx = clamp(Math.round(baseIdx + shift * symLen * 0.4), 1, symLen)
+          char = SYMBOLS[newIdx]
+        }
+
+        if (amp > 0) {
+          const sc = Math.sin(TWO_PI * animT + sizePhase) * amp * 0.5
+          sizeMul = clamp(cell.sizeMul * (1 + sc), 0.4, 1.8)
+        }
+      }
+
+      const baseFontSize = Math.max(1, data.cellHeight * 0.9)
+      const fontSize = Math.max(1, Math.round(baseFontSize * (charSz / 10) * sizeMul))
+      const x = col * data.cellWidth + data.cellWidth * 0.5
+      const y = row * data.cellHeight + data.cellHeight * 0.5
+      ctx.font = `${fontSize}px monospace`
+      ctx.fillText(char, x, y)
+    }
+  }
 }
 
 function App() {
@@ -43,6 +124,7 @@ function App() {
   const panStartRef = useRef({ x: 0, y: 0 })
   const panOriginRef = useRef({ x: 0, y: 0 })
 
+  const [activeTab, setActiveTab] = useState("image")
   const [imageUrl, setImageUrl] = useState("")
   const [asciiData, setAsciiData] = useState(null)
   const [previewViewport, setPreviewViewport] = useState(null)
@@ -50,7 +132,7 @@ function App() {
   const [userZoom, setUserZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
-  const [isInverted, setIsInverted] = useState(false)
+  const [isInverted, setIsInverted] = useState(true)
   const [splashProgress, setSplashProgress] = useState(0)
   const [isSplashVisible, setIsSplashVisible] = useState(true)
   const [isSplashFading, setIsSplashFading] = useState(false)
@@ -61,6 +143,12 @@ function App() {
   const [contrast, setContrast] = useState(100)
   const [brightness, setBrightness] = useState(100)
   const [depth, setDepth] = useState(100)
+
+  const [animChaos, setAnimChaos] = useState(50)
+  const [animAmplitude, setAnimAmplitude] = useState(30)
+  const [animDensity, setAnimDensity] = useState(40)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState(0)
 
   useEffect(() => {
     let frame = 0
@@ -283,41 +371,32 @@ function App() {
     }
   }, [imageUrl])
 
-  const renderAsciiToCanvas = useCallback((targetCanvas, scale = 1) => {
-    if (!asciiData || !targetCanvas) return
-    const width = Math.max(1, Math.ceil(asciiData.sourceWidth))
-    const height = Math.max(1, Math.ceil(asciiData.sourceHeight))
-    targetCanvas.width = width * scale
-    targetCanvas.height = height * scale
-
-    const context = targetCanvas.getContext("2d")
-    if (!context) return
-    context.scale(scale, scale)
-    context.clearRect(0, 0, width, height)
-    context.textAlign = "center"
-    context.textBaseline = "middle"
-    context.fillStyle = isInverted ? "#ffffff" : "#000000"
-
-    for (let row = 0; row < asciiData.rowsCount; row += 1) {
-      const rowCells = asciiData.cells[row]
-      for (let col = 0; col < asciiData.columns; col += 1) {
-        const cell = rowCells?.[col]
-        if (!cell || cell.char === " ") continue
-
-        const baseFontSize = Math.max(1, asciiData.cellHeight * 0.9)
-        const fontSize = Math.max(1, Math.round(baseFontSize * (charSize / 10) * cell.sizeMul))
-        const x = col * asciiData.cellWidth + asciiData.cellWidth * 0.5
-        const y = row * asciiData.cellHeight + asciiData.cellHeight * 0.5
-        context.font = `${fontSize}px monospace`
-        context.fillText(cell.char, x, y)
-      }
-    }
-  }, [asciiData, charSize, isInverted])
+  useEffect(() => {
+    if (activeTab !== "image" || !previewCanvasRef.current || !asciiData) return
+    renderAsciiFrame(previewCanvasRef.current, asciiData, { charSize, isInverted })
+  }, [activeTab, asciiData, charSize, isInverted])
 
   useEffect(() => {
-    if (!previewCanvasRef.current || !asciiData) return
-    renderAsciiToCanvas(previewCanvasRef.current, 1)
-  }, [asciiData, renderAsciiToCanvas])
+    if (activeTab !== "video" || !previewCanvasRef.current || !asciiData) return
+    let frameId = 0
+    const start = performance.now()
+
+    function tick(now) {
+      const t = ((now - start) % ANIM_CYCLE_MS) / ANIM_CYCLE_MS
+      renderAsciiFrame(previewCanvasRef.current, asciiData, {
+        charSize,
+        isInverted,
+        animChaos,
+        animAmplitude,
+        animDensity,
+        t,
+      })
+      frameId = requestAnimationFrame(tick)
+    }
+
+    frameId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frameId)
+  }, [activeTab, asciiData, charSize, isInverted, animChaos, animAmplitude, animDensity])
 
   function applyPreset(name) {
     const preset = PRESETS[name]
@@ -379,11 +458,151 @@ function App() {
   function downloadAsciiPng(scale) {
     if (!asciiData) return
     const canvas = document.createElement("canvas")
-    renderAsciiToCanvas(canvas, scale)
+    renderAsciiFrame(canvas, asciiData, { charSize, isInverted, scale })
     const link = document.createElement("a")
     link.href = canvas.toDataURL("image/png")
     link.download = `ascii-${scale}x.png`
     link.click()
+  }
+
+  async function exportMp4() {
+    if (!asciiData || isExporting) return
+    if (typeof VideoEncoder === "undefined") {
+      alert("Video export requires a browser with WebCodecs support: Chrome, Edge, Opera, or Safari 17+.\n\nFirefox is not supported.")
+      return
+    }
+
+    setIsExporting(true)
+    setExportProgress(0)
+
+    const snap = {
+      charSize,
+      isInverted,
+      animChaos,
+      animAmplitude,
+      animDensity,
+      fillBackground: true,
+    }
+    const snapData = asciiData
+
+    try {
+      const { Muxer, ArrayBufferTarget } = await import("mp4-muxer")
+
+      const baseW = Math.max(1, Math.ceil(snapData.sourceWidth))
+      const baseH = Math.max(1, Math.ceil(snapData.sourceHeight))
+      const MAX_DIM = 1920
+      let downscale = 1
+      if (baseW > MAX_DIM || baseH > MAX_DIM) {
+        downscale = MAX_DIM / Math.max(baseW, baseH)
+      }
+      const encWidth = (Math.round(baseW * downscale) + 1) & ~1
+      const encHeight = (Math.round(baseH * downscale) + 1) & ~1
+
+      const H264_PROFILES = [
+        "avc1.640034",
+        "avc1.640033",
+        "avc1.640032",
+        "avc1.64002a",
+        "avc1.640028",
+        "avc1.4d0034",
+        "avc1.4d0032",
+        "avc1.42003e",
+        "avc1.42001f",
+      ]
+
+      const ACCEL_MODES = ["no-preference", "prefer-software"]
+
+      let resolvedConfig = null
+      for (const accel of ACCEL_MODES) {
+        for (const codec of H264_PROFILES) {
+          const candidate = {
+            codec,
+            width: encWidth,
+            height: encHeight,
+            bitrate: 4_000_000,
+            framerate: EXPORT_FPS,
+            hardwareAcceleration: accel,
+          }
+          const result = await VideoEncoder.isConfigSupported(candidate)
+          if (result.supported) {
+            resolvedConfig = result.config ?? candidate
+            break
+          }
+        }
+        if (resolvedConfig) break
+      }
+
+      if (!resolvedConfig) {
+        throw new Error(`No supported H.264 profile found for ${encWidth}x${encHeight}. Try a smaller image.`)
+      }
+
+      const offscreen = document.createElement("canvas")
+      offscreen.width = encWidth
+      offscreen.height = encHeight
+
+      const target = new ArrayBufferTarget()
+      const muxer = new Muxer({
+        target,
+        video: { codec: "avc", width: encWidth, height: encHeight },
+        fastStart: "in-memory",
+      })
+
+      let encoderError = null
+      const encoder = new VideoEncoder({
+        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+        error: (e) => { encoderError = e },
+      })
+
+      encoder.configure(resolvedConfig)
+
+      for (let i = 0; i < EXPORT_FRAMES; i++) {
+        if (encoderError) throw encoderError
+
+        const t = i / EXPORT_FRAMES
+        renderAsciiFrame(offscreen, snapData, {
+          ...snap,
+          t,
+          canvasWidth: encWidth,
+          canvasHeight: encHeight,
+        })
+
+        const bitmap = await createImageBitmap(offscreen)
+        const frame = new VideoFrame(bitmap, {
+          timestamp: Math.round((i * 1_000_000) / EXPORT_FPS),
+        })
+        bitmap.close()
+
+        encoder.encode(frame, { keyFrame: i % 30 === 0 })
+        frame.close()
+
+        if (encoder.encodeQueueSize > 10) {
+          await new Promise((r) => setTimeout(r, 1))
+        }
+
+        if (i % 6 === 0) {
+          setExportProgress((i + 1) / EXPORT_FRAMES)
+          await new Promise((r) => setTimeout(r, 0))
+        }
+      }
+
+      await encoder.flush()
+      if (encoderError) throw encoderError
+      muxer.finalize()
+
+      const blob = new Blob([target.buffer], { type: "video/mp4" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = "ascii-animation.mp4"
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (err) {
+      console.error("Export failed:", err)
+      alert("Export failed: " + (err?.message || String(err)))
+    }
+
+    setIsExporting(false)
+    setExportProgress(0)
   }
 
   function handlePreviewWheel(event) {
@@ -442,7 +661,7 @@ function App() {
               />
             </div>
             <p className="text-[14px] tracking-[-0.08em] text-[#7E7E7E] [font-family:'JetBrains_Mono',monospace]">
-              1.0
+              2.0
             </p>
           </div>
         </section>
@@ -453,165 +672,240 @@ function App() {
           isSplashVisible ? "scale-[0.992] opacity-0" : "scale-100 opacity-100"
         }`}
       >
-        <div className="h-full rounded-[24px] border border-white/10 bg-[#1A1A1A] p-4">
-          <div className="flex h-full gap-4">
-            <section className="flex min-w-0 w-[70%] flex-col rounded-[20px] border border-white/10 bg-[#101010] p-4">
-              <p className="mb-3 text-sm tracking-wide text-white/80">Preview</p>
-              <div
-                ref={previewContainerRef}
-                className="relative flex h-full max-h-full min-h-[420px] items-center justify-center overflow-hidden rounded-[16px]"
-                style={{
-                  backgroundImage:
-                    "radial-gradient(circle, rgba(144,144,144,0.36) 1px, transparent 1px)",
-                  backgroundSize: "16px 16px",
-                  backgroundColor: "#141414",
-                  cursor: imageUrl ? (isPanningRef.current ? "grabbing" : "grab") : "default",
-                }}
-                onWheel={imageUrl ? handlePreviewWheel : undefined}
-                onMouseDown={imageUrl ? handlePreviewMouseDown : undefined}
-                onMouseMove={imageUrl ? handlePreviewMouseMove : undefined}
-                onMouseUp={imageUrl ? stopPanning : undefined}
-                onMouseLeave={imageUrl ? stopPanning : undefined}
+        <div className="flex h-full gap-3">
+          <section className="flex min-w-0 w-[70%] flex-col rounded-[24px] bg-[#1A1A1A] p-4">
+            <p className="mb-3 text-sm tracking-wide text-white/80">Preview</p>
+            <div
+              ref={previewContainerRef}
+              className="relative flex h-full max-h-full min-h-[420px] items-center justify-center overflow-hidden rounded-[16px]"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle, rgba(144,144,144,0.36) 1px, transparent 1px)",
+                backgroundSize: "16px 16px",
+                backgroundColor: "#141414",
+                cursor: imageUrl ? (isPanningRef.current ? "grabbing" : "grab") : "default",
+              }}
+              onWheel={imageUrl ? handlePreviewWheel : undefined}
+              onMouseDown={imageUrl ? handlePreviewMouseDown : undefined}
+              onMouseMove={imageUrl ? handlePreviewMouseMove : undefined}
+              onMouseUp={imageUrl ? stopPanning : undefined}
+              onMouseLeave={imageUrl ? stopPanning : undefined}
+            >
+              {!imageUrl ? (
+                <div className="flex h-full w-full items-center justify-center rounded-[16px] border border-dashed border-white/20 bg-[#161616]/62 text-sm text-white/45">
+                  Upload an image to see ASCII preview
+                </div>
+              ) : (
+                <div
+                  className={`flex items-center justify-center overflow-hidden rounded ${
+                    isInverted ? "bg-black" : "bg-white"
+                  }`}
+                  style={{
+                    width: contentAnchorSize ? `${contentAnchorSize.width}px` : "100%",
+                    height: contentAnchorSize ? `${contentAnchorSize.height}px` : "100%",
+                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${fitScale * userZoom})`,
+                    transformOrigin: "center center",
+                  }}
+                >
+                  <canvas
+                    ref={previewCanvasRef}
+                    style={{ display: "block", width: "auto", height: "auto", maxWidth: "none" }}
+                  />
+                </div>
+              )}
+            </div>
+          </section>
+
+          <div className="flex min-w-[320px] w-[30%] flex-col gap-3">
+            <div className="flex gap-2.5 rounded-[24px] bg-[#1A1A1A] p-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab("image")}
+                className={`flex-1 rounded-[16px] py-3 text-center text-[15px] font-medium tracking-tight transition-colors ${
+                  activeTab === "image"
+                    ? "bg-[#DADADA] text-[#101010]"
+                    : "text-[#DADADA] hover:bg-white/5"
+                }`}
               >
-                {!imageUrl ? (
-                  <div className="flex h-full w-full items-center justify-center rounded-[16px] border border-dashed border-white/20 bg-[#161616]/62 text-sm text-white/45">
-                    Upload an image to see ASCII preview
+                Image
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("video")}
+                className={`flex-1 rounded-[16px] py-3 text-center text-[15px] font-medium tracking-tight transition-colors ${
+                  activeTab === "video"
+                    ? "bg-[#DADADA] text-[#101010]"
+                    : "text-[#DADADA] hover:bg-white/5"
+                }`}
+              >
+                Video
+              </button>
+            </div>
+
+            <div
+              className={`rounded-[24px] p-4 transition-colors ${
+                isDragging ? "bg-[#252525]" : "bg-[#1A1A1A]"
+              }`}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {!imageUrl ? (
+                <div className="space-y-3 text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#202020]">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M12 16V6M12 6L8.5 9.5M12 6L15.5 9.5M5 17.5V19H19V17.5"
+                        stroke="rgba(248,248,248,0.9)"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                   </div>
-                ) : (
-                  <div
-                    className={`flex items-center justify-center overflow-hidden rounded ${
-                      isInverted ? "bg-black" : "bg-white"
-                    }`}
-                    style={{
-                      width: contentAnchorSize ? `${contentAnchorSize.width}px` : "100%",
-                      height: contentAnchorSize ? `${contentAnchorSize.height}px` : "100%",
-                      transform: `translate(${pan.x}px, ${pan.y}px) scale(${fitScale * userZoom})`,
-                      transformOrigin: "center center",
-                    }}
-                  >
-                    <canvas
-                      ref={previewCanvasRef}
-                      style={{ display: "block", width: "auto", height: "auto", maxWidth: "none" }}
-                    />
-                  </div>
+                  <p className="text-sm text-white/50">Upload or drag the image</p>
+                  <Button type="button" variant="outline" className="w-full" onClick={() => inputRef.current?.click()}>
+                    Upload image
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <img
+                    src={imageUrl}
+                    alt="Source preview"
+                    className="h-36 w-full rounded-[12px] bg-[#0F0F0F] object-contain p-2"
+                  />
+                  <Button type="button" variant="outline" className="w-full" onClick={() => inputRef.current?.click()}>
+                    Upload New Image
+                  </Button>
+                </div>
+              )}
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleUploadChange}
+              />
+            </div>
+
+            <section className="flex min-h-0 flex-1 flex-col rounded-[24px] bg-[#1A1A1A] p-4">
+              <p className="mb-3 text-sm tracking-wide text-white/80">Settings</p>
+              <div className="space-y-4 overflow-y-auto pr-1">
+                {activeTab === "video" && (
+                  <>
+                    <div className="space-y-2">
+                      <p className="text-sm text-white/85">Chaos: {animChaos}%</p>
+                      <Slider value={[animChaos]} min={0} max={100} step={1} onValueChange={(value) => setAnimChaos(value?.[0] ?? 50)} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm text-white/85">Amplitude: {animAmplitude}%</p>
+                      <Slider value={[animAmplitude]} min={0} max={100} step={1} onValueChange={(value) => setAnimAmplitude(value?.[0] ?? 30)} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm text-white/85">Animation density: {animDensity}%</p>
+                      <Slider value={[animDensity]} min={0} max={100} step={1} onValueChange={(value) => setAnimDensity(value?.[0] ?? 40)} />
+                    </div>
+
+                    <div className="border-b border-white/10 pb-1" />
+                  </>
                 )}
+
+                <div className="space-y-2">
+                  <p className="text-sm text-white/85">Base symbol size: {charSize}px</p>
+                  <Slider value={[charSize]} min={6} max={18} step={1} onValueChange={(value) => setCharSize(value?.[0] ?? 10)} />
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-white/85">Random symbol size: {variation}%</p>
+                  <Slider value={[variation]} min={0} max={100} step={1} onValueChange={(value) => setVariation(value?.[0] ?? 0)} />
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-white/85">Density: {density}</p>
+                  <Slider value={[density]} min={2} max={18} step={1} onValueChange={(value) => setDensity(value?.[0] ?? 8)} />
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-white/85">Contrast: {contrast}%</p>
+                  <Slider value={[contrast]} min={50} max={200} step={1} onValueChange={(value) => setContrast(value?.[0] ?? 100)} />
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-white/85">Brightness: {brightness}%</p>
+                  <Slider value={[brightness]} min={50} max={200} step={1} onValueChange={(value) => setBrightness(value?.[0] ?? 100)} />
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-white/85">Depth: {depth}%</p>
+                  <Slider value={[depth]} min={50} max={200} step={1} onValueChange={(value) => setDepth(value?.[0] ?? 100)} />
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-white/85">Presets</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {PRESET_BUTTONS.map((preset) => (
+                      <Button key={preset.key} type="button" variant="outline" onClick={() => applyPreset(preset.key)}>
+                        {preset.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-white/85">Color mode</p>
+                  <Button type="button" variant="outline" className="w-full" onClick={() => setIsInverted((current) => !current)}>
+                    {isInverted ? "Inversion: On (black bg)" : "Inversion: Off (white bg)"}
+                  </Button>
+                </div>
               </div>
             </section>
 
-            <aside className="flex min-w-[320px] w-[30%] flex-col rounded-[20px] border border-white/10 bg-[#101010] p-4">
-              <div
-                className={`rounded-[16px] border border-dashed p-4 ${
-                  isDragging ? "border-white/50 bg-[#222222]" : "border-white/20 bg-[#161616]"
-                }`}
-                onDragEnter={handleDragEnter}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <p className="mb-3 text-sm tracking-wide text-white/80">Image Upload</p>
-                {!imageUrl ? (
-                  <div className="space-y-3 text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-[#202020]">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path
-                          d="M12 16V6M12 6L8.5 9.5M12 6L15.5 9.5M5 17.5V19H19V17.5"
-                          stroke="rgba(248,248,248,0.9)"
-                          strokeWidth="1.7"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+            <section className="rounded-[24px] bg-[#1A1A1A] p-3">
+              {activeTab === "image" ? (
+                <>
+                  <p className="mb-2 text-sm tracking-wide text-white/80">Export PNG</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button type="button" variant="outline" disabled={!asciiData} onClick={() => downloadAsciiPng(1)}>
+                      Download x1
+                    </Button>
+                    <Button type="button" variant="outline" disabled={!asciiData} onClick={() => downloadAsciiPng(2)}>
+                      Download x2
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="mb-2 text-sm tracking-wide text-white/80">Export MP4</p>
+                  {isExporting ? (
+                    <div className="space-y-2">
+                      <div className="h-2 rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-[#DADADA]"
+                          style={{ width: `${Math.round(exportProgress * 100)}%`, transition: "width 0.15s" }}
                         />
-                      </svg>
+                      </div>
+                      <p className="text-center text-xs text-white/50">
+                        Encoding... {Math.round(exportProgress * 100)}%
+                      </p>
                     </div>
-                    <Button type="button" variant="outline" className="w-full" onClick={() => inputRef.current?.click()}>
-                      Upload image
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={!asciiData}
+                      onClick={exportMp4}
+                    >
+                      Export Video
                     </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <img
-                      src={imageUrl}
-                      alt="Source preview"
-                      className="h-36 w-full rounded-[12px] border border-white/10 bg-[#0F0F0F] object-contain p-2"
-                    />
-                    <Button type="button" variant="outline" className="w-full" onClick={() => inputRef.current?.click()}>
-                      Upload New Image
-                    </Button>
-                  </div>
-                )}
-                <input
-                  ref={inputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleUploadChange}
-                />
-              </div>
-
-              <section className="mt-4 flex min-h-0 flex-1 flex-col rounded-[16px] border border-white/10 bg-[#161616] p-4">
-                <p className="mb-3 text-sm tracking-wide text-white/80">Settings</p>
-                <div className="space-y-4 overflow-y-auto pr-1">
-                  <div className="space-y-2">
-                    <p className="text-sm text-white/85">Base symbol size: {charSize}px</p>
-                    <Slider value={[charSize]} min={6} max={18} step={1} onValueChange={(value) => setCharSize(value?.[0] ?? 10)} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-white/85">Random symbol size: {variation}%</p>
-                    <Slider value={[variation]} min={0} max={100} step={1} onValueChange={(value) => setVariation(value?.[0] ?? 0)} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-white/85">Density: {density}</p>
-                    <Slider value={[density]} min={2} max={18} step={1} onValueChange={(value) => setDensity(value?.[0] ?? 8)} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-white/85">Contrast: {contrast}%</p>
-                    <Slider value={[contrast]} min={50} max={200} step={1} onValueChange={(value) => setContrast(value?.[0] ?? 100)} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-white/85">Brightness: {brightness}%</p>
-                    <Slider value={[brightness]} min={50} max={200} step={1} onValueChange={(value) => setBrightness(value?.[0] ?? 100)} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-white/85">Depth: {depth}%</p>
-                    <Slider value={[depth]} min={50} max={200} step={1} onValueChange={(value) => setDepth(value?.[0] ?? 100)} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-white/85">Presets</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {PRESET_BUTTONS.map((preset) => (
-                        <Button key={preset.key} type="button" variant="outline" onClick={() => applyPreset(preset.key)}>
-                          {preset.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm text-white/85">Color mode</p>
-                    <Button type="button" variant="outline" className="w-full" onClick={() => setIsInverted((current) => !current)}>
-                      {isInverted ? "Inversion: On (black bg)" : "Inversion: Off (white bg)"}
-                    </Button>
-                  </div>
-                </div>
-              </section>
-
-              <section className="mt-4 rounded-[16px] border border-white/10 bg-[#161616] p-3">
-                <p className="mb-2 text-sm tracking-wide text-white/80">Export PNG</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button type="button" variant="outline" disabled={!asciiData} onClick={() => downloadAsciiPng(1)}>
-                    Download x1
-                  </Button>
-                  <Button type="button" variant="outline" disabled={!asciiData} onClick={() => downloadAsciiPng(2)}>
-                    Download x2
-                  </Button>
-                </div>
-              </section>
-            </aside>
+                  )}
+                </>
+              )}
+            </section>
           </div>
         </div>
       </div>
