@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 
@@ -78,6 +78,10 @@ function renderAsciiFrame(targetCanvas, data, opts) {
   const TWO_PI = Math.PI * 2
   const symLen = SYMBOLS.length - 1
   const animated = animT != null && (chaos > 0 || amp > 0) && aDensity > 0
+  const fontSizeBase = Math.max(1, data.cellHeight * 0.9) * (charSz / 10)
+  const halfCellW = data.cellWidth * 0.5
+  const halfCellH = data.cellHeight * 0.5
+  let lastFontSize = -1
 
   for (let row = 0; row < data.rowsCount; row++) {
     const rowCells = data.cells[row]
@@ -105,12 +109,12 @@ function renderAsciiFrame(targetCanvas, data, opts) {
         }
       }
 
-      const baseFontSize = Math.max(1, data.cellHeight * 0.9)
-      const fontSize = Math.max(1, Math.round(baseFontSize * (charSz / 10) * sizeMul))
-      const x = col * data.cellWidth + data.cellWidth * 0.5
-      const y = row * data.cellHeight + data.cellHeight * 0.5
-      ctx.font = `${fontSize}px monospace`
-      ctx.fillText(char, x, y)
+      const fontSize = Math.max(1, Math.round(fontSizeBase * sizeMul))
+      if (fontSize !== lastFontSize) {
+        ctx.font = `${fontSize}px monospace`
+        lastFontSize = fontSize
+      }
+      ctx.fillText(char, col * data.cellWidth + halfCellW, row * data.cellHeight + halfCellH)
     }
   }
 }
@@ -119,6 +123,7 @@ function App() {
   const inputRef = useRef(null)
   const previewContainerRef = useRef(null)
   const previewCanvasRef = useRef(null)
+  const pixelCacheRef = useRef(null)
   const dragDepthRef = useRef(0)
   const isPanningRef = useRef(false)
   const panStartRef = useRef({ x: 0, y: 0 })
@@ -149,6 +154,7 @@ function App() {
   const [animDensity, setAnimDensity] = useState(40)
   const [isExporting, setIsExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
+  const [pixelCacheVer, setPixelCacheVer] = useState(0)
 
   useEffect(() => {
     let frame = 0
@@ -180,8 +186,11 @@ function App() {
 
   useEffect(() => {
     if (!imageUrl) {
+      pixelCacheRef.current = null
       return
     }
+
+    pixelCacheRef.current = null
 
     const img = new Image()
     img.onload = () => {
@@ -201,131 +210,16 @@ function App() {
       context.drawImage(img, 0, 0, drawWidth, drawHeight)
       const { data } = context.getImageData(0, 0, drawWidth, drawHeight)
 
-      const safeDensity = clamp(Math.round(density), 2, 18)
-      const contrastFactor = clamp(contrast, 50, 200) / 100
-      const brightnessFactor = clamp(brightness, 50, 200) / 100
-      const depthPower = clamp(depth, 50, 200) / 100
-      const variationAmount = clamp(variation, 0, 100) / 100
-
-      const lineHeight = charSize * 1.1
-      const measureCanvas = document.createElement("canvas")
-      const measureContext = measureCanvas.getContext("2d")
-      if (!measureContext) return
-      measureContext.font = `${charSize}px monospace`
-      const charWidth = measureContext.measureText("M").width || charSize * 0.6
-
-      const columns = clamp(Math.round(drawWidth / safeDensity), 20, 320)
-      const rowsCount = Math.max(
-        1,
-        Math.round((drawHeight * columns * charWidth) / (drawWidth * lineHeight))
-      )
-      const cellWidth = drawWidth / columns
-      const cellHeight = drawHeight / rowsCount
-
-      function getPixelAt(x, y) {
-        const safeX = clamp(Math.round(x), 0, drawWidth - 1)
-        const safeY = clamp(Math.round(y), 0, drawHeight - 1)
-        const index = (safeY * drawWidth + safeX) * 4
-        return { r: data[index], g: data[index + 1], b: data[index + 2], a: data[index + 3] }
-      }
-
-      function getLuminanceAt(x, y) {
-        const { r, g, b, a } = getPixelAt(x, y)
-        if (a === 0) return 255
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b
-      }
-
-      const borderSamples = []
-      const borderStep = Math.max(1, Math.round(Math.min(drawWidth, drawHeight) / 60))
-      for (let x = 0; x < drawWidth; x += borderStep) {
-        borderSamples.push(getPixelAt(x, 0), getPixelAt(x, drawHeight - 1))
-      }
-      for (let y = 0; y < drawHeight; y += borderStep) {
-        borderSamples.push(getPixelAt(0, y), getPixelAt(drawWidth - 1, y))
-      }
-
-      const validBorder = borderSamples.filter((p) => p.a > 16)
-      const backgroundBase = validBorder.length > 0 ? validBorder : borderSamples
-      const sum = backgroundBase.reduce(
-        (acc, p) => ({ r: acc.r + p.r, g: acc.g + p.g, b: acc.b + p.b }),
-        { r: 0, g: 0, b: 0 }
-      )
-      const count = Math.max(1, backgroundBase.length)
-      const bg = { r: sum.r / count, g: sum.g / count, b: sum.b / count }
-      const variance =
-        backgroundBase.reduce((total, p) => {
-          const dr = p.r - bg.r
-          const dg = p.g - bg.g
-          const db = p.b - bg.b
-          return total + dr * dr + dg * dg + db * db
-        }, 0) / count
-      const backgroundThreshold = clamp(14 + Math.sqrt(variance) * 0.5, 14, 64)
-
-      const symbolCount = SYMBOLS.length - 1
-      const cells = []
-
-      for (let row = 0; row < rowsCount; row += 1) {
-        const rowCells = []
-        for (let col = 0; col < columns; col += 1) {
-          const centerX = col * cellWidth + cellWidth * 0.5
-          const centerY = row * cellHeight + cellHeight * 0.5
-
-          const centerPixel = getPixelAt(centerX, centerY)
-          const l0 = getLuminanceAt(centerX, centerY)
-          const l1 = getLuminanceAt(centerX - cellWidth * 0.25, centerY - cellHeight * 0.25)
-          const l2 = getLuminanceAt(centerX + cellWidth * 0.25, centerY + cellHeight * 0.25)
-          const baseLuminance = (l0 + l1 + l2) / 3
-          const rightLum = getLuminanceAt(centerX + 1, centerY)
-          const bottomLum = getLuminanceAt(centerX, centerY + 1)
-          const edgeEnergy = Math.abs(baseLuminance - rightLum) + Math.abs(baseLuminance - bottomLum)
-
-          const colorDistance = Math.sqrt(
-            (centerPixel.r - bg.r) ** 2 + (centerPixel.g - bg.g) ** 2 + (centerPixel.b - bg.b) ** 2
-          )
-          const isFlatBackground = colorDistance < backgroundThreshold && edgeEnergy < 18
-          if (centerPixel.a < 16 || isFlatBackground) {
-            rowCells.push({ char: " ", sizeMul: 1 })
-            continue
-          }
-
-          let normalized = clamp((baseLuminance - 128) * contrastFactor + 128, 0, 255)
-          normalized = clamp(normalized * brightnessFactor, 0, 255)
-          const edgeLift = clamp(edgeEnergy / 32, 0, 0.25)
-          const light = clamp(normalized / 255 + edgeLift, 0, 1)
-
-          const darkness = Math.pow(1 - light, depthPower)
-          const jitter = (stableNoise(row, col, drawWidth + drawHeight) - 0.5) * variationAmount * 0.35
-          const randomizedDarkness = clamp(darkness + jitter, 0, 1)
-          const symbolIndex = Math.round(randomizedDarkness * symbolCount)
-          const sizeMul = 1 + (stableNoise(col, row, 99) - 0.5) * variationAmount * 0.7
-
-          rowCells.push({
-            char: SYMBOLS[symbolIndex] ?? " ",
-            sizeMul: clamp(sizeMul, 0.65, 1.35),
-          })
-        }
-        cells.push(rowCells)
-      }
-
+      pixelCacheRef.current = { data, drawWidth, drawHeight }
       setContentAnchorSize((current) => {
         if (current) return current
-        return {
-          width: drawWidth,
-          height: drawHeight,
-        }
+        return { width: drawWidth, height: drawHeight }
       })
-      setAsciiData({
-        cells,
-        columns,
-        rowsCount,
-        sourceWidth: drawWidth,
-        sourceHeight: drawHeight,
-        cellWidth,
-        cellHeight,
-      })
+      setPixelCacheVer((v) => v + 1)
     }
 
     img.onerror = () => {
+      pixelCacheRef.current = null
       setAsciiData(null)
     }
     img.src = imageUrl
@@ -334,7 +228,130 @@ function App() {
       img.onload = null
       img.onerror = null
     }
-  }, [imageUrl, density, contrast, brightness, depth, variation, charSize])
+  }, [imageUrl])
+
+  useEffect(() => {
+    const cache = pixelCacheRef.current
+    if (!cache) return
+
+    const { data, drawWidth, drawHeight } = cache
+
+    const safeDensity = clamp(Math.round(density), 2, 18)
+    const contrastFactor = clamp(contrast, 50, 200) / 100
+    const brightnessFactor = clamp(brightness, 50, 200) / 100
+    const depthPower = clamp(depth, 50, 200) / 100
+    const variationAmount = clamp(variation, 0, 100) / 100
+
+    const lineHeight = charSize * 1.1
+    const measureCanvas = document.createElement("canvas")
+    const measureContext = measureCanvas.getContext("2d")
+    if (!measureContext) return
+    measureContext.font = `${charSize}px monospace`
+    const charWidth = measureContext.measureText("M").width || charSize * 0.6
+
+    const columns = clamp(Math.round(drawWidth / safeDensity), 20, 320)
+    const rowsCount = Math.max(
+      1,
+      Math.round((drawHeight * columns * charWidth) / (drawWidth * lineHeight))
+    )
+    const cellWidth = drawWidth / columns
+    const cellHeight = drawHeight / rowsCount
+
+    function getPixelAt(x, y) {
+      const safeX = clamp(Math.round(x), 0, drawWidth - 1)
+      const safeY = clamp(Math.round(y), 0, drawHeight - 1)
+      const index = (safeY * drawWidth + safeX) * 4
+      return { r: data[index], g: data[index + 1], b: data[index + 2], a: data[index + 3] }
+    }
+
+    function getLuminanceAt(x, y) {
+      const { r, g, b, a } = getPixelAt(x, y)
+      if (a === 0) return 255
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+
+    const borderSamples = []
+    const borderStep = Math.max(1, Math.round(Math.min(drawWidth, drawHeight) / 60))
+    for (let x = 0; x < drawWidth; x += borderStep) {
+      borderSamples.push(getPixelAt(x, 0), getPixelAt(x, drawHeight - 1))
+    }
+    for (let y = 0; y < drawHeight; y += borderStep) {
+      borderSamples.push(getPixelAt(0, y), getPixelAt(drawWidth - 1, y))
+    }
+
+    const validBorder = borderSamples.filter((p) => p.a > 16)
+    const backgroundBase = validBorder.length > 0 ? validBorder : borderSamples
+    const sum = backgroundBase.reduce(
+      (acc, p) => ({ r: acc.r + p.r, g: acc.g + p.g, b: acc.b + p.b }),
+      { r: 0, g: 0, b: 0 }
+    )
+    const count = Math.max(1, backgroundBase.length)
+    const bg = { r: sum.r / count, g: sum.g / count, b: sum.b / count }
+    const variance =
+      backgroundBase.reduce((total, p) => {
+        const dr = p.r - bg.r
+        const dg = p.g - bg.g
+        const db = p.b - bg.b
+        return total + dr * dr + dg * dg + db * db
+      }, 0) / count
+    const backgroundThreshold = clamp(14 + Math.sqrt(variance) * 0.5, 14, 64)
+
+    const symbolCount = SYMBOLS.length - 1
+    const cells = []
+
+    for (let row = 0; row < rowsCount; row += 1) {
+      const rowCells = []
+      for (let col = 0; col < columns; col += 1) {
+        const centerX = col * cellWidth + cellWidth * 0.5
+        const centerY = row * cellHeight + cellHeight * 0.5
+
+        const centerPixel = getPixelAt(centerX, centerY)
+        const l0 = getLuminanceAt(centerX, centerY)
+        const l1 = getLuminanceAt(centerX - cellWidth * 0.25, centerY - cellHeight * 0.25)
+        const l2 = getLuminanceAt(centerX + cellWidth * 0.25, centerY + cellHeight * 0.25)
+        const baseLuminance = (l0 + l1 + l2) / 3
+        const rightLum = getLuminanceAt(centerX + 1, centerY)
+        const bottomLum = getLuminanceAt(centerX, centerY + 1)
+        const edgeEnergy = Math.abs(baseLuminance - rightLum) + Math.abs(baseLuminance - bottomLum)
+
+        const colorDistance = Math.sqrt(
+          (centerPixel.r - bg.r) ** 2 + (centerPixel.g - bg.g) ** 2 + (centerPixel.b - bg.b) ** 2
+        )
+        const isFlatBackground = colorDistance < backgroundThreshold && edgeEnergy < 18
+        if (centerPixel.a < 16 || isFlatBackground) {
+          rowCells.push({ char: " ", sizeMul: 1 })
+          continue
+        }
+
+        let normalized = clamp((baseLuminance - 128) * contrastFactor + 128, 0, 255)
+        normalized = clamp(normalized * brightnessFactor, 0, 255)
+        const edgeLift = clamp(edgeEnergy / 32, 0, 0.25)
+        const light = clamp(normalized / 255 + edgeLift, 0, 1)
+
+        const darkness = Math.pow(1 - light, depthPower)
+        const jitter = (stableNoise(row, col, drawWidth + drawHeight) - 0.5) * variationAmount * 0.35
+        const randomizedDarkness = clamp(darkness + jitter, 0, 1)
+        const symbolIndex = Math.round(randomizedDarkness * symbolCount)
+        const sizeMul = 1 + (stableNoise(col, row, 99) - 0.5) * variationAmount * 0.7
+
+        rowCells.push({
+          char: SYMBOLS[symbolIndex] ?? " ",
+          sizeMul: clamp(sizeMul, 0.65, 1.35),
+        })
+      }
+      cells.push(rowCells)
+    }
+
+    setAsciiData({
+      cells,
+      columns,
+      rowsCount,
+      sourceWidth: drawWidth,
+      sourceHeight: drawHeight,
+      cellWidth,
+      cellHeight,
+    })
+  }, [pixelCacheVer, density, contrast, brightness, depth, variation, charSize])
 
   useEffect(() => {
     if (!imageUrl) return
@@ -490,13 +507,8 @@ function App() {
 
       const baseW = Math.max(1, Math.ceil(snapData.sourceWidth))
       const baseH = Math.max(1, Math.ceil(snapData.sourceHeight))
-      const MAX_DIM = 1920
-      let downscale = 1
-      if (baseW > MAX_DIM || baseH > MAX_DIM) {
-        downscale = MAX_DIM / Math.max(baseW, baseH)
-      }
-      const encWidth = (Math.round(baseW * downscale) + 1) & ~1
-      const encHeight = (Math.round(baseH * downscale) + 1) & ~1
+      const encWidth = (baseW + 1) & ~1
+      const encHeight = (baseH + 1) & ~1
 
       const H264_PROFILES = [
         "avc1.640034",
@@ -668,16 +680,16 @@ function App() {
       ) : null}
 
       <div
-        className={`h-full p-4 transition-all duration-300 ${
+        className={`h-full p-2 md:p-4 transition-all duration-300 ${
           isSplashVisible ? "scale-[0.992] opacity-0" : "scale-100 opacity-100"
         }`}
       >
-        <div className="flex h-full gap-3">
-          <section className="flex min-w-0 w-[70%] flex-col rounded-[24px] bg-[#1A1A1A] p-4">
-            <p className="mb-3 text-sm tracking-wide text-white/80">Preview</p>
+        <div className="flex h-full flex-col gap-2 md:flex-row md:gap-3">
+          <section className="flex min-w-0 flex-col overflow-hidden rounded-[24px] max-md:rounded-[16px] bg-[#1A1A1A] p-2 max-md:order-2 max-md:h-[38vh] max-md:shrink-0 md:w-[70%] md:p-4">
+            <p className="mb-3 text-sm tracking-wide text-white/80 max-md:hidden">Preview</p>
             <div
               ref={previewContainerRef}
-              className="relative flex h-full max-h-full min-h-[420px] items-center justify-center overflow-hidden rounded-[16px]"
+              className="relative flex flex-1 min-h-0 md:min-h-[420px] items-center justify-center overflow-hidden rounded-[16px]"
               style={{
                 backgroundImage:
                   "radial-gradient(circle, rgba(144,144,144,0.36) 1px, transparent 1px)",
@@ -697,7 +709,7 @@ function App() {
                 </div>
               ) : (
                 <div
-                  className={`flex items-center justify-center overflow-hidden rounded ${
+                  className={`flex shrink-0 items-center justify-center overflow-hidden rounded ${
                     isInverted ? "bg-black" : "bg-white"
                   }`}
                   style={{
@@ -716,12 +728,12 @@ function App() {
             </div>
           </section>
 
-          <div className="flex min-w-[320px] w-[30%] flex-col gap-3">
-            <div className="flex gap-2.5 rounded-[24px] bg-[#1A1A1A] p-3">
+          <div className="max-md:contents md:flex md:min-w-[320px] md:w-[30%] md:flex-col md:gap-3">
+            <div className="flex gap-1.5 md:gap-2.5 rounded-[16px] md:rounded-[24px] bg-[#1A1A1A] p-1.5 md:p-3 max-md:order-1 max-md:shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveTab("image")}
-                className={`flex-1 rounded-[16px] py-3 text-center text-[15px] font-medium tracking-tight transition-colors ${
+                className={`flex-1 rounded-[10px] md:rounded-[16px] py-1.5 md:py-3 text-center text-[13px] md:text-[15px] font-medium tracking-tight transition-colors ${
                   activeTab === "image"
                     ? "bg-[#DADADA] text-[#101010]"
                     : "text-[#DADADA] hover:bg-white/5"
@@ -732,7 +744,7 @@ function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab("video")}
-                className={`flex-1 rounded-[16px] py-3 text-center text-[15px] font-medium tracking-tight transition-colors ${
+                className={`flex-1 rounded-[10px] md:rounded-[16px] py-1.5 md:py-3 text-center text-[13px] md:text-[15px] font-medium tracking-tight transition-colors ${
                   activeTab === "video"
                     ? "bg-[#DADADA] text-[#101010]"
                     : "text-[#DADADA] hover:bg-white/5"
@@ -742,8 +754,9 @@ function App() {
               </button>
             </div>
 
+            <div className="max-md:order-3 max-md:flex-1 max-md:min-h-0 max-md:overflow-y-auto max-md:space-y-2 md:contents">
             <div
-              className={`rounded-[24px] p-4 transition-colors ${
+              className={`rounded-[24px] max-md:rounded-[16px] p-2 md:p-4 transition-colors ${
                 isDragging ? "bg-[#252525]" : "bg-[#1A1A1A]"
               }`}
               onDragEnter={handleDragEnter}
@@ -774,7 +787,7 @@ function App() {
                   <img
                     src={imageUrl}
                     alt="Source preview"
-                    className="h-36 w-full rounded-[12px] bg-[#0F0F0F] object-contain p-2"
+                    className="h-20 md:h-36 w-full rounded-[12px] bg-[#0F0F0F] object-contain p-2"
                   />
                   <Button type="button" variant="outline" className="w-full" onClick={() => inputRef.current?.click()}>
                     Upload New Image
@@ -790,9 +803,9 @@ function App() {
               />
             </div>
 
-            <section className="flex min-h-0 flex-1 flex-col rounded-[24px] bg-[#1A1A1A] p-4">
-              <p className="mb-3 text-sm tracking-wide text-white/80">Settings</p>
-              <div className="space-y-4 overflow-y-auto pr-1">
+            <section className="flex min-h-0 md:flex-1 flex-col rounded-[24px] max-md:rounded-[16px] bg-[#1A1A1A] p-2 md:p-4">
+              <p className="mb-3 text-sm tracking-wide text-white/80 max-md:hidden">Settings</p>
+              <div className="space-y-3 md:space-y-4 overflow-y-auto pr-1">
                 {activeTab === "video" && (
                   <>
                     <div className="space-y-2">
@@ -863,47 +876,42 @@ function App() {
                 </div>
               </div>
             </section>
+            </div>
 
-            <section className="rounded-[24px] bg-[#1A1A1A] p-3">
+            <section className="rounded-[24px] bg-[#1A1A1A] p-3 max-md:order-4 max-md:shrink-0 max-md:rounded-none max-md:bg-transparent max-md:border-t max-md:border-white/10 max-md:p-0 max-md:pt-2">
               {activeTab === "image" ? (
-                <>
-                  <p className="mb-2 text-sm tracking-wide text-white/80">Export PNG</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button type="button" variant="outline" disabled={!asciiData} onClick={() => downloadAsciiPng(1)}>
-                      Download x1
-                    </Button>
-                    <Button type="button" variant="outline" disabled={!asciiData} onClick={() => downloadAsciiPng(2)}>
-                      Download x2
-                    </Button>
-                  </div>
-                </>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant="outline" className="max-md:text-[13px]" disabled={!asciiData} onClick={() => downloadAsciiPng(1)}>
+                    Export X1
+                  </Button>
+                  <Button type="button" variant="outline" className="max-md:text-[13px]" disabled={!asciiData} onClick={() => downloadAsciiPng(2)}>
+                    Export X2
+                  </Button>
+                </div>
               ) : (
-                <>
-                  <p className="mb-2 text-sm tracking-wide text-white/80">Export MP4</p>
-                  {isExporting ? (
-                    <div className="space-y-2">
-                      <div className="h-2 rounded-full bg-white/10">
-                        <div
-                          className="h-full rounded-full bg-[#DADADA]"
-                          style={{ width: `${Math.round(exportProgress * 100)}%`, transition: "width 0.15s" }}
-                        />
-                      </div>
-                      <p className="text-center text-xs text-white/50">
-                        Encoding... {Math.round(exportProgress * 100)}%
-                      </p>
+                isExporting ? (
+                  <div className="space-y-2">
+                    <div className="h-2 rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-[#DADADA]"
+                        style={{ width: `${Math.round(exportProgress * 100)}%`, transition: "width 0.15s" }}
+                      />
                     </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      disabled={!asciiData}
-                      onClick={exportMp4}
-                    >
-                      Export Video
-                    </Button>
-                  )}
-                </>
+                    <p className="text-center text-xs text-white/50">
+                      Encoding... {Math.round(exportProgress * 100)}%
+                    </p>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full max-md:text-[13px]"
+                    disabled={!asciiData}
+                    onClick={exportMp4}
+                  >
+                    Export
+                  </Button>
+                )
               )}
             </section>
           </div>
