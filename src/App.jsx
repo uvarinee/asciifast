@@ -659,20 +659,20 @@ function App() {
             isSplashFading ? "opacity-0 duration-200" : "opacity-100 duration-0"
           }`}
         >
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-[28px] tracking-[-0.04em] text-white/90">asciifast</p>
+          <div className="flex flex-col items-center gap-3 max-md:gap-4">
+            <p className="text-[28px] max-md:text-[20px] tracking-[-0.04em] text-white/90">asciifast</p>
             <img
               src="/splash-image.png"
               alt="asciifast splash mark"
-              className="h-[200px] w-[200px] rounded-[12px] object-cover"
+              className="h-[200px] w-[200px] max-md:h-[120px] max-md:w-[120px] rounded-[12px] object-cover"
             />
-            <div className="mt-1 h-[8px] w-[160px] rounded-[4px] bg-[#2E2E2E] p-0">
+            <div className="mt-1 h-[8px] w-[160px] max-md:mt-0 max-md:h-[6px] max-md:w-[100px] rounded-[4px] bg-[#2E2E2E] p-0">
               <div
                 className="h-full rounded-[4px] bg-[linear-gradient(90deg,#747474_0%,#F8F8F8_100%)]"
                 style={{ width: `${splashProgress * 100}%` }}
               />
             </div>
-            <p className="text-[14px] tracking-[-0.08em] text-[#7E7E7E] [font-family:'JetBrains_Mono',monospace]">
+            <p className="text-[14px] max-md:text-[13px] tracking-[-0.08em] text-[#7E7E7E] [font-family:'JetBrains_Mono',monospace]">
               2.0
             </p>
           </div>
@@ -709,19 +709,20 @@ function App() {
                 </div>
               ) : (
                 <div
-                  className={`flex shrink-0 items-center justify-center overflow-hidden rounded ${
+                  className={`absolute overflow-hidden rounded ${
                     isInverted ? "bg-black" : "bg-white"
                   }`}
                   style={{
-                    width: contentAnchorSize ? `${contentAnchorSize.width}px` : "100%",
-                    height: contentAnchorSize ? `${contentAnchorSize.height}px` : "100%",
-                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${fitScale * userZoom})`,
-                    transformOrigin: "center center",
+                    width: contentAnchorSize ? `${contentAnchorSize.width * fitScale * userZoom}px` : "100%",
+                    height: contentAnchorSize ? `${contentAnchorSize.height * fitScale * userZoom}px` : "100%",
+                    left: "50%",
+                    top: "50%",
+                    transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px))`,
                   }}
                 >
                   <canvas
                     ref={previewCanvasRef}
-                    style={{ display: "block", width: "auto", height: "auto", maxWidth: "none" }}
+                    style={{ display: "block", width: "100%", height: "100%" }}
                   />
                 </div>
               )}
