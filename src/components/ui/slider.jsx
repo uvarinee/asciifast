@@ -33,19 +33,19 @@ function Slider({
       <SliderPrimitive.Track
         data-slot="slider-track"
         className={cn(
-          "relative grow overflow-hidden rounded-[4px] border border-white/10 bg-[#2E2E2E] data-[orientation=horizontal]:h-[8px] data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-[8px]"
+          "relative grow overflow-hidden rounded-full bg-[#2E2E2E] data-[orientation=horizontal]:h-[4px] data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-[4px]"
         )}>
         <SliderPrimitive.Range
           data-slot="slider-range"
           className={cn(
-            "absolute rounded-[4px] bg-[linear-gradient(90deg,#747474_0%,#F8F8F8_100%)] data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
+            "absolute rounded-full bg-[linear-gradient(90deg,#747474_0%,#F8F8F8_100%)] data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
           )} />
       </SliderPrimitive.Track>
       {Array.from({ length: _values.length }, (_, index) => (
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="block size-[18px] shrink-0 rounded-full border-0 bg-[#F8F8F8] shadow-none transition-[box-shadow,transform] hover:scale-[1.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:pointer-events-none disabled:opacity-50" />
+          className="block size-[14px] shrink-0 rounded-full border-0 bg-[#F8F8F8] shadow-none transition-[box-shadow,transform] hover:scale-[1.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:pointer-events-none disabled:opacity-50" />
       ))}
     </SliderPrimitive.Root>
   );
