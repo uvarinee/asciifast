@@ -2,24 +2,20 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 
-const SYMBOLS = " .,:1i7r352x4ea6k890dNM#&@"
+const SYMBOLS = " .,:1i7r352x4e6a8k90dNM#&@"
 
 const PRESETS = {
-  balanced: { charSize: 10, variation: 0, density: 8, contrast: 100, brightness: 100, depth: 100 },
-  detail: { charSize: 9, variation: 20, density: 5, contrast: 120, brightness: 100, depth: 120 },
-  punchy: { charSize: 10, variation: 10, density: 7, contrast: 145, brightness: 95, depth: 135 },
-  soft: { charSize: 11, variation: 15, density: 9, contrast: 85, brightness: 110, depth: 85 },
-  sketch: { charSize: 10, variation: 35, density: 7, contrast: 110, brightness: 105, depth: 95 },
-  bold: { charSize: 9, variation: 25, density: 6, contrast: 165, brightness: 92, depth: 155 },
+  clean:      { charSize: 10, variation: 0,  density: 8, contrast: 105, brightness: 100, depth: 100 },
+  detailed:   { charSize: 9,  variation: 10, density: 5, contrast: 125, brightness: 100, depth: 125 },
+  cinematic:  { charSize: 10, variation: 5,  density: 7, contrast: 140, brightness: 90,  depth: 150 },
+  raw:        { charSize: 11, variation: 40, density: 6, contrast: 115, brightness: 105, depth: 110 },
 }
 
 const PRESET_BUTTONS = [
-  { key: "balanced", label: "Balanced" },
-  { key: "detail", label: "Detail" },
-  { key: "punchy", label: "Punchy" },
-  { key: "soft", label: "Soft" },
-  { key: "sketch", label: "Sketch" },
-  { key: "bold", label: "Bold" },
+  { key: "clean", label: "Clean" },
+  { key: "detailed", label: "Detailed" },
+  { key: "cinematic", label: "Cinematic" },
+  { key: "raw", label: "Raw" },
 ]
 
 const SPLASH_DURATION_MS = 2000
@@ -73,8 +69,8 @@ function renderAsciiFrame(targetCanvas, data, opts) {
 
   ctx.textAlign = "center"
   ctx.textBaseline = "middle"
-  ctx.fillStyle = inverted ? "#ffffff" : "#000000"
 
+  const baseR = inverted ? 255 : 0
   const TWO_PI = Math.PI * 2
   const symLen = SYMBOLS.length - 1
   const animated = animT != null && (chaos > 0 || amp > 0) && aDensity > 0
@@ -82,6 +78,7 @@ function renderAsciiFrame(targetCanvas, data, opts) {
   const halfCellW = data.cellWidth * 0.5
   const halfCellH = data.cellHeight * 0.5
   let lastFontSize = -1
+  let lastToneKey = -1
 
   for (let row = 0; row < data.rowsCount; row++) {
     const rowCells = data.cells[row]
@@ -114,6 +111,15 @@ function renderAsciiFrame(targetCanvas, data, opts) {
         ctx.font = `${fontSize}px monospace`
         lastFontSize = fontSize
       }
+
+      const tone = cell.tone ?? 1
+      const toneKey = Math.round(tone * 50)
+      if (toneKey !== lastToneKey) {
+        const v = Math.round(baseR * tone + (255 - baseR) * (1 - tone))
+        ctx.fillStyle = `rgb(${v},${v},${v})`
+        lastToneKey = toneKey
+      }
+
       ctx.fillText(char, col * data.cellWidth + halfCellW, row * data.cellHeight + halfCellH)
     }
   }
@@ -319,7 +325,7 @@ function App() {
         )
         const isFlatBackground = colorDistance < backgroundThreshold && edgeEnergy < 18
         if (centerPixel.a < 16 || isFlatBackground) {
-          rowCells.push({ char: " ", sizeMul: 1 })
+          rowCells.push({ char: " ", sizeMul: 1, tone: 1 })
           continue
         }
 
@@ -334,9 +340,13 @@ function App() {
         const symbolIndex = Math.round(randomizedDarkness * symbolCount)
         const sizeMul = 1 + (stableNoise(col, row, 99) - 0.5) * variationAmount * 0.7
 
+        const toneCurve = clamp(light * 1.3 + edgeLift * 0.5, 0, 1)
+        const tone = 0.25 + toneCurve * 0.75
+
         rowCells.push({
           char: SYMBOLS[symbolIndex] ?? " ",
           sizeMul: clamp(sizeMul, 0.65, 1.35),
+          tone,
         })
       }
       cells.push(rowCells)
@@ -655,7 +665,7 @@ function App() {
     <div className="relative h-full overflow-hidden bg-background text-foreground">
       {isSplashVisible ? (
         <section
-          className={`absolute inset-0 z-50 flex items-center justify-center bg-[#101010] transition-opacity ${
+          className={`absolute inset-0 z-50 flex items-center justify-center bg-[#050505] transition-opacity ${
             isSplashFading ? "opacity-0 duration-200" : "opacity-100 duration-0"
           }`}
         >
@@ -664,7 +674,7 @@ function App() {
             <img
               src="/splash-image.png"
               alt="asciifast splash mark"
-              className="h-[200px] w-[200px] max-md:h-[120px] max-md:w-[120px] rounded-[12px] object-cover"
+              className="h-[200px] w-[200px] max-md:h-[120px] max-md:w-[120px] rounded-[48px] max-md:rounded-[28px] object-cover"
             />
             <div className="mt-1 h-[8px] w-[160px] max-md:mt-0 max-md:h-[6px] max-md:w-[100px] rounded-[4px] bg-[#2E2E2E] p-0">
               <div
@@ -673,7 +683,7 @@ function App() {
               />
             </div>
             <p className="text-[14px] max-md:text-[13px] tracking-[-0.08em] text-[#7E7E7E] [font-family:'JetBrains_Mono',monospace]">
-              2.0
+              3.0
             </p>
           </div>
         </section>
@@ -685,16 +695,20 @@ function App() {
         }`}
       >
         <div className="flex h-full flex-col gap-2 md:flex-row md:gap-3">
-          <section className="flex min-w-0 flex-col overflow-hidden rounded-[24px] max-md:rounded-[16px] bg-[#1A1A1A] p-2 max-md:order-2 max-md:h-[38vh] max-md:shrink-0 md:w-[70%] md:p-4">
-            <p className="mb-3 text-sm tracking-wide text-white/80 max-md:hidden">Preview</p>
+          <section
+            className="flex min-w-0 flex-col overflow-hidden rounded-[32px] max-md:rounded-[20px] p-2 max-md:order-2 max-md:h-[38vh] max-md:shrink-0 md:w-[70%] md:p-2"
+            style={{
+              background: "linear-gradient(180deg, #171717 0%, #151515 100%)",
+            }}
+          >
             <div
               ref={previewContainerRef}
-              className="relative flex flex-1 min-h-0 md:min-h-[420px] items-center justify-center overflow-hidden rounded-[16px]"
+              className="relative flex flex-1 min-h-0 md:min-h-[420px] items-center justify-center overflow-hidden rounded-[24px] max-md:rounded-[16px]"
               style={{
                 backgroundImage:
-                  "radial-gradient(circle, rgba(144,144,144,0.36) 1px, transparent 1px)",
+                  "radial-gradient(circle, rgba(144,144,144,0.25) 1px, transparent 1px)",
                 backgroundSize: "16px 16px",
-                backgroundColor: "#141414",
+                backgroundColor: "#0F0F0F",
                 cursor: imageUrl ? (isPanningRef.current ? "grabbing" : "grab") : "default",
               }}
               onWheel={imageUrl ? handlePreviewWheel : undefined}
@@ -730,14 +744,24 @@ function App() {
           </section>
 
           <div className="max-md:contents md:flex md:min-w-[320px] md:w-[30%] md:flex-col md:gap-3">
-            <div className="flex gap-1.5 md:gap-2.5 rounded-[16px] md:rounded-[24px] bg-[#1A1A1A] p-1.5 md:p-3 max-md:order-1 max-md:shrink-0">
+            <div
+              className="relative flex rounded-full bg-[#171717] border border-white p-1 max-md:order-1 max-md:shrink-0"
+              style={{ boxShadow: "inset 0 0 6px 0 rgba(0,0,0,1)" }}
+            >
+              <div
+                className="absolute top-1 bottom-1 rounded-full border border-white/40 transition-[left] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                style={{
+                  width: "calc(50% - 4px)",
+                  left: activeTab === "image" ? "4px" : "calc(50% + 0px)",
+                  background: "linear-gradient(180deg, #E6E6E6 0%, #CCCCCC 100%)",
+                  boxShadow: "inset 0 -3px 7px 0 rgba(0,0,0,0.4), inset 0 -1px 2px 0 rgba(0,0,0,0.2), inset 0 3px 6px 0 rgba(255,255,255,0.7), inset 0 2px 3px 0 rgba(255,255,255,1)",
+                }}
+              />
               <button
                 type="button"
                 onClick={() => setActiveTab("image")}
-                className={`flex-1 rounded-[10px] md:rounded-[16px] py-1.5 md:py-3 text-center text-[13px] md:text-[15px] font-medium tracking-tight transition-colors ${
-                  activeTab === "image"
-                    ? "bg-[#DADADA] text-[#101010]"
-                    : "text-[#DADADA] hover:bg-white/5"
+                className={`relative z-10 flex-1 rounded-full py-3 max-md:py-2.5 text-center text-[14px] font-medium tracking-[-0.04em] transition-colors duration-200 ${
+                  activeTab === "image" ? "text-[#070707]" : "text-[#F8F8F8]"
                 }`}
               >
                 Image
@@ -745,10 +769,8 @@ function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab("video")}
-                className={`flex-1 rounded-[10px] md:rounded-[16px] py-1.5 md:py-3 text-center text-[13px] md:text-[15px] font-medium tracking-tight transition-colors ${
-                  activeTab === "video"
-                    ? "bg-[#DADADA] text-[#101010]"
-                    : "text-[#DADADA] hover:bg-white/5"
+                className={`relative z-10 flex-1 rounded-full py-3 max-md:py-2.5 text-center text-[14px] font-medium tracking-[-0.04em] transition-colors duration-200 ${
+                  activeTab === "video" ? "text-[#070707]" : "text-[#F8F8F8]"
                 }`}
               >
                 Video
@@ -757,8 +779,8 @@ function App() {
 
             <div className="max-md:order-3 max-md:flex-1 max-md:min-h-0 max-md:overflow-y-auto max-md:space-y-2 md:contents">
             <div
-              className={`rounded-[24px] max-md:rounded-[16px] p-2 md:p-4 transition-colors ${
-                isDragging ? "bg-[#252525]" : "bg-[#1A1A1A]"
+              className={`rounded-[32px] max-md:rounded-[20px] p-4 md:p-5 transition-colors ${
+                isDragging ? "bg-[#151515]" : "bg-[#0D0D0D]"
               }`}
               onDragEnter={handleDragEnter}
               onDragOver={handleDragOver}
@@ -804,23 +826,34 @@ function App() {
               />
             </div>
 
-            <section className="flex min-h-0 md:flex-1 flex-col rounded-[24px] max-md:rounded-[16px] bg-[#1A1A1A] p-2 md:p-4">
-              <p className="mb-3 text-sm tracking-wide text-white/80 max-md:hidden">Settings</p>
+            <section
+              className="flex min-h-0 md:flex-1 flex-col rounded-[32px] max-md:rounded-[20px] bg-[#0D0D0D] p-4 md:p-5"
+            >
+              <p className="mb-3 text-[16px] font-normal tracking-normal text-white max-md:hidden">Setting</p>
               <div className="space-y-3 md:space-y-4 overflow-y-auto pr-1">
                 {activeTab === "video" && (
                   <>
                     <div className="space-y-2">
-                      <p className="text-sm text-white/85">Chaos: {animChaos}%</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[14px] font-light text-[#A8A8A8]">Chaos</p>
+                        <p className="text-[14px] text-white">{animChaos}%</p>
+                      </div>
                       <Slider value={[animChaos]} min={0} max={100} step={1} onValueChange={(value) => setAnimChaos(value?.[0] ?? 50)} />
                     </div>
 
                     <div className="space-y-2">
-                      <p className="text-sm text-white/85">Amplitude: {animAmplitude}%</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[14px] font-light text-[#A8A8A8]">Amplitude</p>
+                        <p className="text-[14px] text-white">{animAmplitude}%</p>
+                      </div>
                       <Slider value={[animAmplitude]} min={0} max={100} step={1} onValueChange={(value) => setAnimAmplitude(value?.[0] ?? 30)} />
                     </div>
 
                     <div className="space-y-2">
-                      <p className="text-sm text-white/85">Animation density: {animDensity}%</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[14px] font-light text-[#A8A8A8]">Animation density</p>
+                        <p className="text-[14px] text-white">{animDensity}%</p>
+                      </div>
                       <Slider value={[animDensity]} min={0} max={100} step={1} onValueChange={(value) => setAnimDensity(value?.[0] ?? 40)} />
                     </div>
 
@@ -829,37 +862,55 @@ function App() {
                 )}
 
                 <div className="space-y-2">
-                  <p className="text-sm text-white/85">Base symbol size: {charSize}px</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[14px] font-light text-[#A8A8A8]">Base symbol size</p>
+                    <p className="text-[14px] text-white">{charSize}px</p>
+                  </div>
                   <Slider value={[charSize]} min={6} max={18} step={1} onValueChange={(value) => setCharSize(value?.[0] ?? 10)} />
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm text-white/85">Random symbol size: {variation}%</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[14px] font-light text-[#A8A8A8]">Random symbol size</p>
+                    <p className="text-[14px] text-white">{variation}%</p>
+                  </div>
                   <Slider value={[variation]} min={0} max={100} step={1} onValueChange={(value) => setVariation(value?.[0] ?? 0)} />
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm text-white/85">Density: {density}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[14px] font-light text-[#A8A8A8]">Density</p>
+                    <p className="text-[14px] text-white">{density}</p>
+                  </div>
                   <Slider value={[density]} min={2} max={18} step={1} onValueChange={(value) => setDensity(value?.[0] ?? 8)} />
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm text-white/85">Contrast: {contrast}%</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[14px] font-light text-[#A8A8A8]">Contrast</p>
+                    <p className="text-[14px] text-white">{contrast}%</p>
+                  </div>
                   <Slider value={[contrast]} min={50} max={200} step={1} onValueChange={(value) => setContrast(value?.[0] ?? 100)} />
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm text-white/85">Brightness: {brightness}%</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[14px] font-light text-[#A8A8A8]">Brightness</p>
+                    <p className="text-[14px] text-white">{brightness}%</p>
+                  </div>
                   <Slider value={[brightness]} min={50} max={200} step={1} onValueChange={(value) => setBrightness(value?.[0] ?? 100)} />
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm text-white/85">Depth: {depth}%</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[14px] font-light text-[#A8A8A8]">Depth</p>
+                    <p className="text-[14px] text-white">{depth}%</p>
+                  </div>
                   <Slider value={[depth]} min={50} max={200} step={1} onValueChange={(value) => setDepth(value?.[0] ?? 100)} />
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm text-white/85">Presets</p>
+                  <p className="text-[14px] font-light text-[#A8A8A8]">Presets</p>
                   <div className="grid grid-cols-2 gap-2">
                     {PRESET_BUTTONS.map((preset) => (
                       <Button key={preset.key} type="button" variant="outline" onClick={() => applyPreset(preset.key)}>
@@ -870,7 +921,7 @@ function App() {
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm text-white/85">Color mode</p>
+                  <p className="text-[14px] font-light text-[#A8A8A8]">Color mode</p>
                   <Button type="button" variant="outline" className="w-full" onClick={() => setIsInverted((current) => !current)}>
                     {isInverted ? "Inversion: On (black bg)" : "Inversion: Off (white bg)"}
                   </Button>
@@ -879,7 +930,7 @@ function App() {
             </section>
             </div>
 
-            <section className="rounded-[24px] bg-[#1A1A1A] p-3 max-md:order-4 max-md:shrink-0 max-md:rounded-none max-md:bg-transparent max-md:border-t max-md:border-white/10 max-md:p-0 max-md:pt-2">
+            <section className="rounded-[32px] bg-[#0D0D0D] p-3 max-md:order-4 max-md:shrink-0 max-md:rounded-t-[24px] max-md:rounded-b-none max-md:p-3">
               {activeTab === "image" ? (
                 <div className="grid grid-cols-2 gap-2">
                   <Button type="button" variant="outline" className="max-md:text-[13px]" disabled={!asciiData} onClick={() => downloadAsciiPng(1)}>
