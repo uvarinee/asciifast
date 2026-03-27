@@ -879,7 +879,7 @@ function App() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-[14px] font-light text-[#A8A8A8]">Density</p>
+                    <p className="text-[14px] font-light text-[#A8A8A8]">Scale</p>
                     <p className="text-[14px] text-white">{density}</p>
                   </div>
                   <Slider value={[density]} min={2} max={18} step={1} onValueChange={(value) => setDensity(value?.[0] ?? 8)} />
