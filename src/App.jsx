@@ -5,10 +5,10 @@ import { Slider } from "@/components/ui/slider"
 const SYMBOLS = " .,:1i7r352x4e6a8k90dNM#&@"
 
 const PRESETS = {
-  clean:      { charSize: 10, variation: 0,  density: 8, contrast: 105, brightness: 100, depth: 100 },
-  detailed:   { charSize: 9,  variation: 10, density: 5, contrast: 125, brightness: 100, depth: 125 },
-  cinematic:  { charSize: 10, variation: 5,  density: 7, contrast: 140, brightness: 90,  depth: 150 },
-  raw:        { charSize: 11, variation: 40, density: 6, contrast: 115, brightness: 105, depth: 110 },
+  clean:      { scale: 50, size: 65, variation: 0,  contrast: 40, brightness: 50, depth: 50 },
+  detailed:   { scale: 20, size: 60, variation: 8,  contrast: 55, brightness: 50, depth: 60 },
+  cinematic:  { scale: 40, size: 65, variation: 5,  contrast: 65, brightness: 40, depth: 75 },
+  raw:        { scale: 60, size: 70, variation: 35, contrast: 48, brightness: 55, depth: 55 },
 }
 
 const PRESET_BUTTONS = [
@@ -35,7 +35,7 @@ function stableNoise(a, b, c = 0) {
 function renderAsciiFrame(targetCanvas, data, opts) {
   if (!data || !targetCanvas) return
   const scale = opts.scale ?? 1
-  const charSz = opts.charSize ?? 10
+  const charSz = opts.size ?? 65
   const inverted = opts.isInverted ?? false
   const fill = opts.fillBackground ?? false
   const animT = opts.t
@@ -74,7 +74,8 @@ function renderAsciiFrame(targetCanvas, data, opts) {
   const TWO_PI = Math.PI * 2
   const symLen = SYMBOLS.length - 1
   const animated = animT != null && (chaos > 0 || amp > 0) && aDensity > 0
-  const fontSizeBase = Math.max(1, data.cellHeight * 0.9) * (charSz / 10)
+  const fillRatio = 0.4 + (clamp(charSz, 0, 100) / 100) * 0.55
+  const fontSizeBase = Math.max(1, data.cellHeight * fillRatio)
   const halfCellW = data.cellWidth * 0.5
   const halfCellH = data.cellHeight * 0.5
   let lastFontSize = -1
@@ -148,12 +149,12 @@ function App() {
   const [isSplashVisible, setIsSplashVisible] = useState(true)
   const [isSplashFading, setIsSplashFading] = useState(false)
 
-  const [charSize, setCharSize] = useState(10)
+  const [scale, setScale] = useState(50)
+  const [size, setSize] = useState(65)
   const [variation, setVariation] = useState(0)
-  const [density, setDensity] = useState(8)
-  const [contrast, setContrast] = useState(100)
-  const [brightness, setBrightness] = useState(100)
-  const [depth, setDepth] = useState(100)
+  const [contrast, setContrast] = useState(40)
+  const [brightness, setBrightness] = useState(50)
+  const [depth, setDepth] = useState(50)
 
   const [animChaos, setAnimChaos] = useState(50)
   const [animAmplitude, setAnimAmplitude] = useState(30)
@@ -242,18 +243,19 @@ function App() {
 
     const { data, drawWidth, drawHeight } = cache
 
-    const safeDensity = clamp(Math.round(density), 2, 18)
-    const contrastFactor = clamp(contrast, 50, 200) / 100
-    const brightnessFactor = clamp(brightness, 50, 200) / 100
-    const depthPower = clamp(depth, 50, 200) / 100
+    const safeDensity = 2 + (clamp(scale, 0, 100) / 100) * 16
+    const contrastFactor = 0.5 + (clamp(contrast, 0, 100) / 100) * 1.5
+    const brightnessFactor = 0.5 + (clamp(brightness, 0, 100) / 100) * 1.5
+    const depthPower = 0.5 + (clamp(depth, 0, 100) / 100) * 1.5
     const variationAmount = clamp(variation, 0, 100) / 100
 
-    const lineHeight = charSize * 1.1
+    const refCharSize = 10
+    const lineHeight = refCharSize * 1.1
     const measureCanvas = document.createElement("canvas")
     const measureContext = measureCanvas.getContext("2d")
     if (!measureContext) return
-    measureContext.font = `${charSize}px monospace`
-    const charWidth = measureContext.measureText("M").width || charSize * 0.6
+    measureContext.font = `${refCharSize}px monospace`
+    const charWidth = measureContext.measureText("M").width || refCharSize * 0.6
 
     const columns = clamp(Math.round(drawWidth / safeDensity), 20, 320)
     const rowsCount = Math.max(
@@ -334,18 +336,21 @@ function App() {
         const edgeLift = clamp(edgeEnergy / 32, 0, 0.25)
         const light = clamp(normalized / 255 + edgeLift, 0, 1)
 
-        const darkness = Math.pow(1 - light, depthPower)
-        const jitter = (stableNoise(row, col, drawWidth + drawHeight) - 0.5) * variationAmount * 0.35
-        const randomizedDarkness = clamp(darkness + jitter, 0, 1)
-        const symbolIndex = Math.round(randomizedDarkness * symbolCount)
-        const sizeMul = 1 + (stableNoise(col, row, 99) - 0.5) * variationAmount * 0.7
+        const darkness = Math.pow(light, depthPower) * 0.85
+
+        const spread = (stableNoise(row, col, 31) - 0.5) * 0.28
+        const varJitter = (stableNoise(row, col, drawWidth + drawHeight) - 0.5) * variationAmount * 0.35
+        const randomizedDarkness = clamp(darkness + spread + varJitter, 0, 1)
+        const symbolIndex = clamp(Math.round(randomizedDarkness * symbolCount), 0, symbolCount)
+
+        const sizeMul = 1 + (stableNoise(col, row, 99) - 0.5) * variationAmount * 0.5
 
         const toneCurve = clamp(light * 1.3 + edgeLift * 0.5, 0, 1)
         const tone = 0.25 + toneCurve * 0.75
 
         rowCells.push({
           char: SYMBOLS[symbolIndex] ?? " ",
-          sizeMul: clamp(sizeMul, 0.65, 1.35),
+          sizeMul: clamp(sizeMul, 0.7, 1.25),
           tone,
         })
       }
@@ -361,7 +366,7 @@ function App() {
       cellWidth,
       cellHeight,
     })
-  }, [pixelCacheVer, density, contrast, brightness, depth, variation, charSize])
+  }, [pixelCacheVer, scale, contrast, brightness, depth, variation, size])
 
   useEffect(() => {
     if (!imageUrl) return
@@ -400,8 +405,8 @@ function App() {
 
   useEffect(() => {
     if (activeTab !== "image" || !previewCanvasRef.current || !asciiData) return
-    renderAsciiFrame(previewCanvasRef.current, asciiData, { charSize, isInverted })
-  }, [activeTab, asciiData, charSize, isInverted])
+    renderAsciiFrame(previewCanvasRef.current, asciiData, { size, isInverted })
+  }, [activeTab, asciiData, size, isInverted])
 
   useEffect(() => {
     if (activeTab !== "video" || !previewCanvasRef.current || !asciiData) return
@@ -411,7 +416,7 @@ function App() {
     function tick(now) {
       const t = ((now - start) % ANIM_CYCLE_MS) / ANIM_CYCLE_MS
       renderAsciiFrame(previewCanvasRef.current, asciiData, {
-        charSize,
+        size,
         isInverted,
         animChaos,
         animAmplitude,
@@ -423,14 +428,14 @@ function App() {
 
     frameId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frameId)
-  }, [activeTab, asciiData, charSize, isInverted, animChaos, animAmplitude, animDensity])
+  }, [activeTab, asciiData, size, isInverted, animChaos, animAmplitude, animDensity])
 
   function applyPreset(name) {
     const preset = PRESETS[name]
     if (!preset) return
-    setCharSize(preset.charSize)
+    setScale(preset.scale)
+    setSize(preset.size)
     setVariation(preset.variation)
-    setDensity(preset.density)
     setContrast(preset.contrast)
     setBrightness(preset.brightness)
     setDepth(preset.depth)
@@ -482,13 +487,13 @@ function App() {
     updateImage(event.target.files?.[0])
   }
 
-  function downloadAsciiPng(scale) {
+  function downloadAsciiPng(exportScale) {
     if (!asciiData) return
     const canvas = document.createElement("canvas")
-    renderAsciiFrame(canvas, asciiData, { charSize, isInverted, scale })
+    renderAsciiFrame(canvas, asciiData, { size, isInverted, scale: exportScale })
     const link = document.createElement("a")
     link.href = canvas.toDataURL("image/png")
-    link.download = `ascii-${scale}x.png`
+    link.download = `ascii-${exportScale}x.png`
     link.click()
   }
 
@@ -503,7 +508,7 @@ function App() {
     setExportProgress(0)
 
     const snap = {
-      charSize,
+      size,
       isInverted,
       animChaos,
       animAmplitude,
@@ -863,15 +868,23 @@ function App() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-[14px] font-light text-[#A8A8A8]">Base symbol size</p>
-                    <p className="text-[14px] text-white">{charSize}px</p>
+                    <p className="text-[14px] font-light text-[#A8A8A8]">Scale</p>
+                    <p className="text-[14px] text-white">{scale}%</p>
                   </div>
-                  <Slider value={[charSize]} min={6} max={18} step={1} onValueChange={(value) => setCharSize(value?.[0] ?? 10)} />
+                  <Slider value={[scale]} min={0} max={100} step={1} onValueChange={(value) => setScale(value?.[0] ?? 50)} />
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-[14px] font-light text-[#A8A8A8]">Random symbol size</p>
+                    <p className="text-[14px] font-light text-[#A8A8A8]">Size</p>
+                    <p className="text-[14px] text-white">{size}%</p>
+                  </div>
+                  <Slider value={[size]} min={0} max={100} step={1} onValueChange={(value) => setSize(value?.[0] ?? 65)} />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[14px] font-light text-[#A8A8A8]">Variation</p>
                     <p className="text-[14px] text-white">{variation}%</p>
                   </div>
                   <Slider value={[variation]} min={0} max={100} step={1} onValueChange={(value) => setVariation(value?.[0] ?? 0)} />
@@ -879,18 +892,10 @@ function App() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-[14px] font-light text-[#A8A8A8]">Scale</p>
-                    <p className="text-[14px] text-white">{density}</p>
-                  </div>
-                  <Slider value={[density]} min={2} max={18} step={1} onValueChange={(value) => setDensity(value?.[0] ?? 8)} />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
                     <p className="text-[14px] font-light text-[#A8A8A8]">Contrast</p>
                     <p className="text-[14px] text-white">{contrast}%</p>
                   </div>
-                  <Slider value={[contrast]} min={50} max={200} step={1} onValueChange={(value) => setContrast(value?.[0] ?? 100)} />
+                  <Slider value={[contrast]} min={0} max={100} step={1} onValueChange={(value) => setContrast(value?.[0] ?? 40)} />
                 </div>
 
                 <div className="space-y-2">
@@ -898,7 +903,7 @@ function App() {
                     <p className="text-[14px] font-light text-[#A8A8A8]">Brightness</p>
                     <p className="text-[14px] text-white">{brightness}%</p>
                   </div>
-                  <Slider value={[brightness]} min={50} max={200} step={1} onValueChange={(value) => setBrightness(value?.[0] ?? 100)} />
+                  <Slider value={[brightness]} min={0} max={100} step={1} onValueChange={(value) => setBrightness(value?.[0] ?? 50)} />
                 </div>
 
                 <div className="space-y-2">
@@ -906,7 +911,7 @@ function App() {
                     <p className="text-[14px] font-light text-[#A8A8A8]">Depth</p>
                     <p className="text-[14px] text-white">{depth}%</p>
                   </div>
-                  <Slider value={[depth]} min={50} max={200} step={1} onValueChange={(value) => setDepth(value?.[0] ?? 100)} />
+                  <Slider value={[depth]} min={0} max={100} step={1} onValueChange={(value) => setDepth(value?.[0] ?? 50)} />
                 </div>
 
                 <div className="space-y-2">
