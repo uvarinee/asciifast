@@ -123,3 +123,26 @@ button {
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+.skeu-btn {
+  background: rgba(255,255,255,0.06);
+  transition: background 0.2s;
+}
+.skeu-btn:hover {
+  background: rgba(255,255,255,0.13);
+}
+
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
+}
+.thin-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 16px;
+}

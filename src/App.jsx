@@ -127,9 +127,8 @@ function renderAsciiFrame(targetCanvas, data, opts) {
   }
 }
 
-const FLAT_BTN_PRIMARY = "rgba(255,255,255,0.12)"
-const FLAT_BTN_SECONDARY = "rgba(255,255,255,0.04)"
-const SIDEBAR_GRADIENT = "linear-gradient(180deg, rgba(33,33,33,1) 6%, rgba(5,5,5,1) 100%)"
+const SKEU_TAB_SHADOW = "inset 0 0 0 1px rgba(230,230,230,0.09), inset 0px 2px 3px 0px rgba(255,255,255,0.12), inset 0px 2px 4px 0px rgba(255,255,255,0.3), inset 0px -2px 3px 0px rgba(0,0,0,0.9), inset 0px -4px 10px 0px rgba(0,0,0,0.46)"
+const SKEU_BTN_SHADOW = "inset 0 0 0 1px rgba(230,230,230,0.09), inset 0px 2px 3px 0px rgba(255,255,255,0.12), inset 0px 2px 4px 0px rgba(255,255,255,0.02), inset 0px -2px 3px 0px rgba(0,0,0,0.9), inset 0px -4px 10px 0px rgba(0,0,0,0.46)"
 
 function LogoIcon() {
   return (
@@ -150,22 +149,6 @@ function MenuSvgIcon() {
   )
 }
 
-function CloseIcon({ onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex items-center justify-center rounded-full w-8 h-8 transition-all hover:bg-white/10"
-    >
-      <svg
-        width="16" height="16" viewBox="0 0 16 16" fill="none"
-        className="transition-transform duration-200 ease-out group-hover:rotate-90"
-      >
-        <path d="M12 4L4 12M4 4L12 12" stroke="#BCBCBC" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    </button>
-  )
-}
 
 function BackIcon({ onClick }) {
   return (
@@ -183,45 +166,43 @@ function BackIcon({ onClick }) {
 
 function OnboardingIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="8" stroke="#BCBCBC" strokeWidth="1.5" />
-      <path d="M10 6V10.5" stroke="#BCBCBC" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="10" cy="13.5" r="0.75" fill="#BCBCBC" />
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="9" stroke="#F2F2F2" strokeWidth="1.5" />
+      <path d="M12 7V12" stroke="#F2F2F2" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="12" cy="15.5" r="0.75" fill="#F2F2F2" />
     </svg>
   )
 }
 
 function FeedbackIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M3 4H17V13H10L6 16V13H3V4Z" stroke="#BCBCBC" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M7 8H13" stroke="#BCBCBC" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M4 5H20V15H12L7 19V15H4V5Z" stroke="#F2F2F2" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M8 9.5H16" stroke="#F2F2F2" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   )
 }
 
-function AboutIcon() {
+function AboutLogoIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="8" stroke="#BCBCBC" strokeWidth="1.5" />
-      <path d="M10 6C10.5523 6 11 6.44772 11 7C11 7.55228 10.5523 8 10 8C9.44772 8 9 7.55228 9 7C9 6.44772 9.44772 6 10 6Z" fill="#BCBCBC" />
-      <path d="M10 10V14" stroke="#BCBCBC" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="3" width="18" height="18" rx="5" stroke="#F2F2F2" strokeWidth="1.5" />
+      <circle cx="12" cy="12" r="3" stroke="#F2F2F2" strokeWidth="1.5" />
     </svg>
   )
 }
 
 function SupportIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 4C6.5 4 4 6.5 4 9.5C4 12.5 6.5 16 10 16C13.5 16 16 12.5 16 9.5C16 6.5 13.5 4 10 4Z" stroke="#BCBCBC" strokeWidth="1.5" />
-      <path d="M10 12V12.5" stroke="#BCBCBC" strokeWidth="2" strokeLinecap="round" />
-      <path d="M10 7C11.1046 7 12 7.67157 12 8.5C12 9.32843 11.1046 10 10 10V10.5" stroke="#BCBCBC" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M12 21C12 21 4 16.5 4 10.5C4 7.46243 6.46243 5 9.5 5C10.9566 5 11.9566 5.58579 12 5.58579C12.0434 5.58579 13.0434 5 14.5 5C17.5376 5 20 7.46243 20 10.5C20 16.5 12 21 12 21Z" stroke="#F2F2F2" strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   )
 }
 
 function MenuModal({ isOpen, onClose }) {
   const [activeSection, setActiveSection] = useState(null)
+  const [menuAtBottom, setMenuAtBottom] = useState(false)
 
   useEffect(() => {
     if (!isOpen) {
@@ -230,12 +211,16 @@ function MenuModal({ isOpen, onClose }) {
     }
   }, [isOpen])
 
+  useEffect(() => {
+    setMenuAtBottom(false)
+  }, [activeSection])
+
   if (!isOpen && !activeSection) return null
 
   const menuItems = [
     { key: "onboarding", label: "Onboarding", icon: <OnboardingIcon /> },
     { key: "feedback", label: "Feedback", icon: <FeedbackIcon /> },
-    { key: "about", label: "About Version 3.0", icon: <AboutIcon /> },
+    { key: "about", label: "About Version 3.0", icon: <AboutLogoIcon /> },
     { key: "support", label: "Support", icon: <SupportIcon /> },
   ]
 
@@ -267,48 +252,145 @@ function MenuModal({ isOpen, onClose }) {
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-[12px]" />
       <div
-        className="relative z-10 w-[440px] rounded-[24px] border border-white/[0.06] bg-[#0D0D0D] overflow-hidden"
+        className="relative z-10 overflow-hidden"
+        style={{
+          width: 600,
+          height: 360,
+          borderRadius: 24,
+          border: "1px solid rgba(255,255,255,0.08)",
+          background: "#050505",
+          boxShadow: "0px 4px 20px -8px black",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 pt-5 pb-4">
+        {/* Header */}
+        <div className="absolute flex items-center" style={{ left: 31, top: 0, height: 80 }}>
           {activeSection ? (
             <div className="flex items-center gap-2">
               <BackIcon onClick={() => setActiveSection(null)} />
-              <p className="text-[15px] font-normal tracking-[-0.02em] text-[#F2F2F2]" style={{ fontFamily: "'Geist Mono', monospace" }}>
+              <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 16, fontWeight: 400, letterSpacing: "-0.01em", color: "#F2F2F2" }}>
                 {sectionTitles[activeSection]}
               </p>
             </div>
           ) : (
-            <p className="text-[15px] font-normal tracking-[-0.02em] text-[#F2F2F2]" style={{ fontFamily: "'Geist Mono', monospace" }}>
+            <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 16, fontWeight: 400, letterSpacing: "-0.01em", color: "#F2F2F2" }}>
               Menu
             </p>
           )}
-          <CloseIcon onClick={onClose} />
+        </div>
+
+        {/* Close button */}
+        <div
+          className="absolute flex items-center justify-center transition-colors hover:bg-white/10"
+          style={{
+            right: 15,
+            top: 15,
+            width: 50,
+            height: 50,
+            borderRadius: 967,
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.02)",
+            cursor: "pointer",
+          }}
+          onClick={onClose}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M11 3L3 11M3 3L11 11" stroke="#F2F2F2" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
         </div>
 
         {activeSection ? (
-          <div className="relative max-h-[360px]">
-            <div className="overflow-y-auto max-h-[360px] px-6 pb-6 hide-scrollbar">
-              {renderContent()}
+          <div className="absolute" style={{ left: 7, top: 81, width: 584, bottom: 7 }}>
+            <div
+              className="h-full overflow-y-auto thin-scrollbar"
+              onScroll={(e) => {
+                const el = e.currentTarget
+                setMenuAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 8)
+              }}
+            >
+              <div style={{ padding: "0 16px 16px 16px" }}>
+                {renderContent()}
+              </div>
             </div>
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#0D0D0D] to-transparent" />
-            <div className="pointer-events-none absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-[#0D0D0D] to-transparent" />
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 transition-opacity duration-200"
+              style={{
+                height: 48,
+                background: "linear-gradient(180deg, rgba(5,5,5,0) 0%, rgba(5,5,5,1) 90%)",
+                opacity: menuAtBottom ? 0 : 1,
+              }}
+            />
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2 px-6 pb-6">
-            {menuItems.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => handleItemClick(item.key)}
-                className="flex flex-col gap-3 rounded-[16px] border border-white/[0.04] bg-[#141414] p-4 text-left transition-colors hover:bg-[#1a1a1a]"
-              >
-                <span className="text-[#BCBCBC]">{item.icon}</span>
-                <span className="text-[14px] font-normal tracking-[-0.01em] text-[#BCBCBC]" style={{ fontFamily: "'Geist Mono', monospace" }}>
-                  {item.label}
-                </span>
-              </button>
-            ))}
+          <div className="absolute flex flex-col" style={{ left: 7, top: 81, width: 584, gap: 6 }}>
+            <div className="flex" style={{ gap: 6 }}>
+              {menuItems.slice(0, 2).map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => handleItemClick(item.key)}
+                  className="relative flex-1 overflow-hidden transition-colors hover:bg-white/10"
+                  style={{
+                    height: 132,
+                    borderRadius: 16,
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.02)",
+                    boxShadow: "0px 0px 4px 0px black",
+                    textAlign: "left",
+                  }}
+                >
+                  <span className="absolute" style={{ left: 23, top: 23 }}>{item.icon}</span>
+                  <span
+                    className="absolute"
+                    style={{
+                      left: 23,
+                      bottom: 25,
+                      fontFamily: "'Geist Mono', monospace",
+                      fontSize: 16,
+                      fontWeight: 300,
+                      letterSpacing: "-0.01em",
+                      color: "#F2F2F2",
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="flex" style={{ gap: 6 }}>
+              {menuItems.slice(2, 4).map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => handleItemClick(item.key)}
+                  className="relative flex-1 overflow-hidden transition-colors hover:bg-white/10"
+                  style={{
+                    height: 132,
+                    borderRadius: 16,
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.02)",
+                    boxShadow: "0px 0px 4px 0px black",
+                    textAlign: "left",
+                  }}
+                >
+                  <span className="absolute" style={{ left: 23, top: 23 }}>{item.icon}</span>
+                  <span
+                    className="absolute"
+                    style={{
+                      left: 23,
+                      bottom: 25,
+                      fontFamily: "'Geist Mono', monospace",
+                      fontSize: 16,
+                      fontWeight: 300,
+                      letterSpacing: "-0.01em",
+                      color: "#F2F2F2",
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -318,79 +400,165 @@ function MenuModal({ isOpen, onClose }) {
 
 function OnboardingContent() {
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <section>
-        <h3 className="mb-2 text-[16px] font-medium tracking-[-0.02em] text-[#F2F2F2]">Upload Image</h3>
-        <div className="mb-3 overflow-hidden rounded-[12px] border border-white/[0.06] bg-[#141414]">
-          <img src="/onboarding/upload-image.png" alt="Upload" className="w-full" />
+        <h3
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: 16,
+            fontWeight: 500,
+            letterSpacing: "-0.02em",
+            color: "#F2F2F2",
+            marginBottom: 8,
+          }}
+        >
+          Upload Image
+        </h3>
+        <div
+          style={{
+            overflow: "hidden",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.06)",
+            background: "rgba(255,255,255,0.06)",
+            marginBottom: 12,
+          }}
+        >
+          <img src="/onboarding/upload-image.png" alt="Upload" style={{ width: "100%", display: "block" }} />
         </div>
-        <p className="text-[13px] leading-[1.5] font-light tracking-[-0.01em] text-[#888]" style={{ fontFamily: "'Geist Mono', monospace" }}>
+        <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.5, fontWeight: 300, letterSpacing: "-0.01em", color: "#888" }}>
           Upload an image to start. Drag and drop it into the canvas or use the upload button. App will instantly convert it into ASCII.
         </p>
       </section>
       <section>
-        <h3 className="mb-2 text-[16px] font-medium tracking-[-0.02em] text-[#F2F2F2]">Modes & Settings</h3>
-        <div className="mb-3 overflow-hidden rounded-[12px] border border-white/[0.06] bg-[#141414]">
-          <img src="/onboarding/modes-settings.png" alt="Modes" className="w-full" />
+        <h3
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: 16,
+            fontWeight: 500,
+            letterSpacing: "-0.02em",
+            color: "#F2F2F2",
+            marginBottom: 8,
+          }}
+        >
+          Modes & Settings
+        </h3>
+        <div
+          style={{
+            overflow: "hidden",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.06)",
+            background: "rgba(255,255,255,0.06)",
+            marginBottom: 12,
+          }}
+        >
+          <img src="/onboarding/modes-settings.png" alt="Modes" style={{ width: "100%", display: "block" }} />
         </div>
-        <p className="text-[13px] leading-[1.5] font-light tracking-[-0.01em] text-[#888]" style={{ fontFamily: "'Geist Mono', monospace" }}>
+        <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.5, fontWeight: 300, letterSpacing: "-0.01em", color: "#888" }}>
           Switch between Image and Video modes. Each mode adapts the controls for different types of content. Choose the one that fits your workflow.
         </p>
       </section>
       <section>
-        <div className="mb-3 overflow-hidden rounded-[12px] border border-white/[0.06] bg-[#141414]">
-          <img src="/onboarding/sliders.png" alt="Sliders" className="w-full" />
+        <div
+          style={{
+            overflow: "hidden",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.06)",
+            background: "rgba(255,255,255,0.06)",
+            marginBottom: 12,
+          }}
+        >
+          <img src="/onboarding/sliders.png" alt="Sliders" style={{ width: "100%", display: "block" }} />
         </div>
-        <p className="text-[13px] leading-[1.5] font-light tracking-[-0.01em] text-[#888]" style={{ fontFamily: "'Geist Mono', monospace" }}>
+        <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.5, fontWeight: 300, letterSpacing: "-0.01em", color: "#888" }}>
           Use sliders as presets to customize the ASCII style. Adjust the scale, contrast, variation, and other parameters to get different visual results.
         </p>
       </section>
       <section>
-        <h3 className="mb-2 text-[16px] font-medium tracking-[-0.02em] text-[#F2F2F2]">Export</h3>
-        <div className="mb-3 overflow-hidden rounded-[12px] border border-white/[0.06] bg-[#141414]">
-          <img src="/onboarding/export.png" alt="Export" className="w-full" />
+        <h3
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: 16,
+            fontWeight: 500,
+            letterSpacing: "-0.02em",
+            color: "#F2F2F2",
+            marginBottom: 8,
+          }}
+        >
+          Export
+        </h3>
+        <div
+          style={{
+            overflow: "hidden",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.06)",
+            background: "rgba(255,255,255,0.06)",
+            marginBottom: 12,
+          }}
+        >
+          <img src="/onboarding/export.png" alt="Export" style={{ width: "100%", display: "block" }} />
         </div>
-        <p className="text-[13px] leading-[1.5] font-light tracking-[-0.01em] text-[#888]" style={{ fontFamily: "'Geist Mono', monospace" }}>
+        <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.5, fontWeight: 300, letterSpacing: "-0.01em", color: "#888" }}>
           Export your result when you're ready. Save the ASCII output as an image or use it in your workflow.
         </p>
       </section>
-      <div className="h-6" />
+      <div style={{ height: 16 }} />
     </div>
   )
 }
 
 function AboutVersionContent() {
   return (
-    <div className="space-y-4">
-      <div className="rounded-[16px] border border-white/[0.06] bg-[#141414] p-5">
-        <p className="text-[13px] leading-[1.6] font-light text-[#888]" style={{ fontFamily: "'Geist Mono', monospace" }}>
-          Version 3.0 introduces a refined interface and improved ASCII rendering. The styling engine has been updated with grayscale gradations and more responsive character density for smoother visual results.
-        </p>
-        <p className="mt-4 text-[13px] leading-[1.6] font-light text-[#888]" style={{ fontFamily: "'Geist Mono', monospace" }}>
-          Controls have been redesigned with clearer naming and better sensitivity, making it easier to fine-tune the ASCII style and explore variations.
-        </p>
-      </div>
+    <div
+      style={{
+        borderRadius: 16,
+        border: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(255,255,255,0.06)",
+        padding: 20,
+      }}
+    >
+      <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.6, fontWeight: 300, color: "#888" }}>
+        Version 3.0 introduces a refined interface and improved ASCII rendering. The styling engine has been updated with grayscale gradations and more responsive character density for smoother visual results.
+      </p>
+      <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.6, fontWeight: 300, color: "#888", marginTop: 16 }}>
+        Controls have been redesigned with clearer naming and better sensitivity, making it easier to fine-tune the ASCII style and explore variations.
+      </p>
     </div>
   )
 }
 
 function SupportContent() {
   return (
-    <div className="space-y-4">
-      <div className="rounded-[16px] border border-white/[0.06] bg-[#141414] p-5">
-        <p className="text-[13px] leading-[1.6] font-light text-[#888]" style={{ fontFamily: "'Geist Mono', monospace" }}>
-          If you like ASCIIFAST, you can support its development. Your support helps me to continue improving the tool and create new independent design experiments. For support, you can contact me directly via Telegram.
-        </p>
-        <a
-          href="https://t.me/uvarine"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-block rounded-full bg-white/[0.06] border border-white/[0.04] px-4 py-2 text-[13px] font-medium text-[#F2F2F2] transition-colors hover:bg-white/10"
-          style={{ fontFamily: "'Geist Mono', monospace" }}
-        >
-          @uvarine
-        </a>
-      </div>
+    <div
+      style={{
+        borderRadius: 16,
+        border: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(255,255,255,0.06)",
+        padding: 20,
+      }}
+    >
+      <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.6, fontWeight: 300, color: "#888" }}>
+        If you like ASCIIFAST, you can support its development. Your support helps me to continue improving the tool and create new independent design experiments. For support, you can contact me directly via Telegram.
+      </p>
+      <a
+        href="https://t.me/uvarine"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: "inline-block",
+          marginTop: 16,
+          borderRadius: 967,
+          background: "rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.04)",
+          padding: "8px 16px",
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: 13,
+          fontWeight: 500,
+          color: "#F2F2F2",
+          textDecoration: "none",
+        }}
+      >
+        @uvarine
+      </a>
     </div>
   )
 }
@@ -415,6 +583,7 @@ function App() {
   const isPanningRef = useRef(false)
   const panStartRef = useRef({ x: 0, y: 0 })
   const panOriginRef = useRef({ x: 0, y: 0 })
+  const optionsScrollRef = useRef(null)
 
   const [activeTab, setActiveTab] = useState("image")
   const [imageUrl, setImageUrl] = useState("")
@@ -425,6 +594,7 @@ function App() {
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [isInverted, setIsInverted] = useState(true)
+  const [isColorInverted, setIsColorInverted] = useState(false)
   const [splashProgress, setSplashProgress] = useState(0)
   const [isSplashVisible, setIsSplashVisible] = useState(true)
   const [isSplashFading, setIsSplashFading] = useState(false)
@@ -444,6 +614,7 @@ function App() {
   const [isExporting, setIsExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
   const [pixelCacheVer, setPixelCacheVer] = useState(0)
+  const [optionsAtBottom, setOptionsAtBottom] = useState(false)
 
   useEffect(() => {
     let frame = 0
@@ -530,6 +701,7 @@ function App() {
     const brightnessFactor = 0.5 + (clamp(brightness, 0, 100) / 100) * 1.5
     const depthPower = 0.5 + (clamp(depth, 0, 100) / 100) * 1.5
     const variationAmount = clamp(variation, 0, 100) / 100
+    const invertColors = isColorInverted
 
     const refCharSize = 10
     const lineHeight = refCharSize * 1.1
@@ -608,7 +780,57 @@ function App() {
           (centerPixel.r - bg.r) ** 2 + (centerPixel.g - bg.g) ** 2 + (centerPixel.b - bg.b) ** 2
         )
         const isFlatBackground = colorDistance < backgroundThreshold && edgeEnergy < 18
-        if (centerPixel.a < 16 || isFlatBackground) {
+        const isEmptyCell = centerPixel.a < 16 || isFlatBackground
+
+        if (invertColors) {
+          if (isEmptyCell) {
+            const invLum = 0
+            let normalized = clamp((invLum - 128) * contrastFactor + 128, 0, 255)
+            normalized = clamp(normalized * brightnessFactor, 0, 255)
+            const light = clamp(normalized / 255, 0, 1)
+            const darkness = Math.pow(light, depthPower) * 0.85
+            const spread = (stableNoise(row, col, 31) - 0.5) * 0.28
+            const varJitter = (stableNoise(row, col, drawWidth + drawHeight) - 0.5) * variationAmount * 0.35
+            const randomizedDarkness = clamp(darkness + spread + varJitter, 0, 1)
+            const symbolIndex = clamp(Math.round(randomizedDarkness * symbolCount), 0, symbolCount)
+            const sizeMul = 1 + (stableNoise(col, row, 99) - 0.5) * variationAmount * 0.5
+            const tone = 0.25 + clamp(light * 1.3, 0, 1) * 0.75
+            rowCells.push({
+              char: SYMBOLS[symbolIndex] ?? " ",
+              sizeMul: clamp(sizeMul, 0.7, 1.25),
+              tone,
+            })
+            continue
+          }
+
+          const invLuminance = 255 - baseLuminance
+          let normalized = clamp((invLuminance - 128) * contrastFactor + 128, 0, 255)
+          normalized = clamp(normalized * brightnessFactor, 0, 255)
+          const edgeLift = clamp(edgeEnergy / 32, 0, 0.25)
+          const light = clamp(normalized / 255 + edgeLift, 0, 1)
+          const darkness = Math.pow(light, depthPower) * 0.85
+          const spread = (stableNoise(row, col, 31) - 0.5) * 0.28
+          const varJitter = (stableNoise(row, col, drawWidth + drawHeight) - 0.5) * variationAmount * 0.35
+          const randomizedDarkness = clamp(darkness + spread + varJitter, 0, 1)
+          const symbolIndex = clamp(Math.round(randomizedDarkness * symbolCount), 0, symbolCount)
+
+          if (SYMBOLS[symbolIndex] === " " || symbolIndex === 0) {
+            rowCells.push({ char: " ", sizeMul: 1, tone: 1 })
+            continue
+          }
+
+          const sizeMul = 1 + (stableNoise(col, row, 99) - 0.5) * variationAmount * 0.5
+          const toneCurve = clamp(light * 1.3 + edgeLift * 0.5, 0, 1)
+          const tone = 0.25 + toneCurve * 0.75
+          rowCells.push({
+            char: SYMBOLS[symbolIndex] ?? " ",
+            sizeMul: clamp(sizeMul, 0.7, 1.25),
+            tone,
+          })
+          continue
+        }
+
+        if (isEmptyCell) {
           rowCells.push({ char: " ", sizeMul: 1, tone: 1 })
           continue
         }
@@ -648,7 +870,7 @@ function App() {
       cellWidth,
       cellHeight,
     })
-  }, [pixelCacheVer, scale, contrast, brightness, depth, variation, size])
+  }, [pixelCacheVer, scale, contrast, brightness, depth, variation, size, isColorInverted])
 
   useEffect(() => {
     if (!imageUrl) return
@@ -909,6 +1131,12 @@ function App() {
     setExportProgress(0)
   }
 
+  function handleOptionsScroll(event) {
+    const el = event.currentTarget
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8
+    setOptionsAtBottom(atBottom)
+  }
+
   function handlePreviewWheel(event) {
     event.preventDefault()
     const factor = Math.exp(-event.deltaY * 0.0015)
@@ -951,22 +1179,27 @@ function App() {
             isSplashFading ? "opacity-0 duration-200" : "opacity-100 duration-0"
           }`}
         >
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-[28px] tracking-[-0.04em] text-white/90">asciifast</p>
-            <img
-              src="/splash-image.png"
-              alt="asciifast splash mark"
-              className="h-[200px] w-[200px] rounded-[48px] object-cover"
-            />
-            <div className="mt-1 h-[8px] w-[160px] rounded-[4px] bg-[#2E2E2E]">
-              <div
-                className="h-full rounded-[4px] bg-[linear-gradient(90deg,#747474_0%,#F8F8F8_100%)]"
-                style={{ width: `${splashProgress * 100}%` }}
-              />
-            </div>
-            <p className="text-[14px] tracking-[-0.08em] text-[#7E7E7E]" style={{ fontFamily: "'Geist Mono', monospace" }}>
-              3.0
+          <div className="flex flex-col items-center" style={{ gap: 28 }}>
+            <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 28, letterSpacing: "-1.12px", textAlign: "center" }}>
+              <span className="text-white">ascii</span>
+              <span style={{ color: "rgba(255,255,255,0.5)" }}>fast</span>
             </p>
+            <div className="flex flex-col items-center" style={{ gap: 20 }}>
+              <img
+                src="/splash-image.png"
+                alt="asciifast splash mark"
+                style={{ width: 200, height: 200, borderRadius: 48, objectFit: "cover" }}
+              />
+              <div className="h-[8px] w-[160px] rounded-[4px] bg-[#2E2E2E]">
+                <div
+                  className="h-full rounded-[19px] bg-[linear-gradient(90deg,#747474_0%,#F8F8F8_100%)]"
+                  style={{ width: `${splashProgress * 100}%` }}
+                />
+              </div>
+              <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 14, letterSpacing: "-1.12px", color: "#7E7E7E", textAlign: "center" }}>
+                3.0
+              </p>
+            </div>
           </div>
         </section>
       ) : null}
@@ -978,7 +1211,7 @@ function App() {
           isSplashVisible ? "scale-[0.992] opacity-0" : "scale-100 opacity-100"
         }`}
       >
-        <div className="flex h-full" style={{ padding: 48, gap: 24 }}>
+        <div className="flex h-full" style={{ padding: 24, gap: 24 }}>
           {/* Left column */}
           <div className="flex flex-1 min-w-0 flex-col" style={{ gap: 24 }}>
             {/* Title bar — h=88 */}
@@ -1065,17 +1298,18 @@ function App() {
             {/* Tabs — h=88 */}
             <div
               className="relative flex shrink-0 items-center"
-              style={{ height: 88, borderRadius: 96, background: SIDEBAR_GRADIENT, padding: 6 }}
+              style={{ height: 88, borderRadius: 96, background: "#0D0D0D", padding: 6 }}
             >
               <div
-                className="pointer-events-none absolute rounded-full transition-[left] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                className="pointer-events-none absolute transition-[left] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 style={{
                   width: "calc(50% - 6px)",
                   height: "calc(100% - 12px)",
                   top: 6,
                   left: activeTab === "image" ? 6 : "calc(50%)",
-                  background: FLAT_BTN_PRIMARY,
                   borderRadius: 967,
+                  background: "rgba(255,255,255,0.1)",
+                  boxShadow: SKEU_TAB_SHADOW,
                 }}
               />
               {["image", "video"].map((tab) => (
@@ -1099,41 +1333,61 @@ function App() {
               ))}
             </div>
 
-            {/* Dark image mode */}
+            {/* Dark image mode & Invert Colors */}
             <div
-              className="flex shrink-0 items-center justify-between rounded-[20px] bg-[#0D0D0D]"
+              className="flex shrink-0 flex-col gap-[22px] rounded-[20px] bg-[#0D0D0D] overflow-hidden"
               style={{ padding: 24 }}
             >
-              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 16, fontWeight: 300, letterSpacing: "-0.01em", color: "#BCBCBC" }}>
-                Dark image mode
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsInverted((c) => !c)}
-                className="relative shrink-0 rounded-full transition-colors"
-                style={{ width: 36, height: 20, background: isInverted ? "#E6E6E6" : "#333" }}
-              >
-                <span
-                  className="absolute top-[2px] block rounded-full transition-[left] duration-200"
-                  style={{ width: 16, height: 16, background: isInverted ? "#0D0D0D" : "#888", left: isInverted ? 18 : 2 }}
-                />
-              </button>
+              <div className="flex items-center justify-between">
+                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 14, fontWeight: 300, letterSpacing: "-0.01em", color: "#BCBCBC" }}>
+                  Dark Image Mode
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsInverted((c) => !c)}
+                  className="relative shrink-0 rounded-full transition-colors"
+                  style={{ width: 36, height: 20, background: isInverted ? "#E6E6E6" : "#333" }}
+                >
+                  <span
+                    className="absolute top-[2px] block rounded-full transition-[left] duration-200"
+                    style={{ width: 16, height: 16, background: isInverted ? "#0D0D0D" : "#888", left: isInverted ? 18 : 2 }}
+                  />
+                </button>
+              </div>
+              <svg className="w-full shrink-0" height="1" xmlns="http://www.w3.org/2000/svg">
+                <line x1="0" y1="0.5" x2="100%" y2="0.5" stroke="#333" strokeWidth="1" strokeDasharray="8 8" />
+              </svg>
+              <div className="flex items-center justify-between">
+                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 14, fontWeight: 300, letterSpacing: "-0.01em", color: "#BCBCBC" }}>
+                  Invert Colors
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsColorInverted((c) => !c)}
+                  className="relative shrink-0 rounded-full transition-colors"
+                  style={{ width: 36, height: 20, background: isColorInverted ? "#E6E6E6" : "#333" }}
+                >
+                  <span
+                    className="absolute top-[2px] block rounded-full transition-[left] duration-200"
+                    style={{ width: 16, height: 16, background: isColorInverted ? "#0D0D0D" : "#888", left: isColorInverted ? 18 : 2 }}
+                  />
+                </button>
+              </div>
             </div>
+
+            {activeTab === "video" && (
+              <div className="shrink-0 rounded-[24px] bg-[#0D0D0D] overflow-hidden" style={{ padding: 24 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                  <SliderRow label="Chaos" value={animChaos} onChange={setAnimChaos} />
+                  <SliderRow label="Amplitude" value={animAmplitude} onChange={setAnimAmplitude} />
+                  <SliderRow label="Animation density" value={animDensity} onChange={setAnimDensity} />
+                </div>
+              </div>
+            )}
 
             {/* Options panel */}
             <div className="relative flex-1 min-h-0 rounded-[24px] bg-[#0D0D0D] overflow-hidden">
-              <div className="h-full overflow-y-auto hide-scrollbar" style={{ padding: 24 }}>
-                {activeTab === "video" && (
-                  <>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                      <SliderRow label="Chaos" value={animChaos} onChange={setAnimChaos} />
-                      <SliderRow label="Amplitude" value={animAmplitude} onChange={setAnimAmplitude} />
-                      <SliderRow label="Density" value={animDensity} onChange={setAnimDensity} />
-                    </div>
-                    <div className="my-6 h-px bg-white/10" />
-                  </>
-                )}
-
+              <div ref={optionsScrollRef} className="h-full overflow-y-auto thin-scrollbar" style={{ padding: 24 }} onScroll={handleOptionsScroll}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                   <SliderRow label="Scale" value={scale} onChange={setScale} />
                   <SliderRow label="Size" value={size} onChange={setSize} />
@@ -1171,15 +1425,19 @@ function App() {
                 <div style={{ height: 40 }} />
               </div>
               <div
-                className="pointer-events-none absolute inset-x-0 bottom-0"
-                style={{ height: 168, background: "linear-gradient(180deg, rgba(13,13,13,0) 0%, rgba(13,13,13,1) 93%)" }}
+                className="pointer-events-none absolute inset-x-0 bottom-0 transition-opacity duration-200"
+                style={{
+                  height: 168,
+                  background: "linear-gradient(180deg, rgba(13,13,13,0) 0%, rgba(13,13,13,1) 93%)",
+                  opacity: optionsAtBottom ? 0 : 1,
+                }}
               />
             </div>
 
             {/* Export bar — h=88 */}
             <div
               className="flex shrink-0 items-center"
-              style={{ height: 88, borderRadius: 48, background: SIDEBAR_GRADIENT, padding: 6 }}
+              style={{ height: 88, borderRadius: 48, background: "#0D0D0D", padding: 6 }}
             >
               {isExporting ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4">
@@ -1197,10 +1455,10 @@ function App() {
                     type="button"
                     disabled={!asciiData}
                     onClick={() => { downloadAsciiPng(1); setShowExportOptions(false) }}
-                    className="flex-1 text-center transition-colors duration-200 hover:bg-white/[0.16] disabled:opacity-40"
+                    className="skeu-btn flex-1 text-center disabled:opacity-40"
                     style={{
                       borderRadius: 967,
-                      background: FLAT_BTN_PRIMARY,
+                      boxShadow: SKEU_BTN_SHADOW,
                       fontFamily: "Inter, sans-serif",
                       fontSize: 15,
                       fontWeight: 400,
@@ -1214,10 +1472,10 @@ function App() {
                     type="button"
                     disabled={!asciiData}
                     onClick={() => { downloadAsciiPng(2); setShowExportOptions(false) }}
-                    className="flex-1 text-center transition-colors duration-200 hover:bg-white/[0.16] disabled:opacity-40"
+                    className="skeu-btn flex-1 text-center disabled:opacity-40"
                     style={{
                       borderRadius: 967,
-                      background: FLAT_BTN_PRIMARY,
+                      boxShadow: SKEU_BTN_SHADOW,
                       fontFamily: "Inter, sans-serif",
                       fontSize: 15,
                       fontWeight: 400,
@@ -1233,11 +1491,11 @@ function App() {
                   <button
                     type="button"
                     onClick={() => inputRef.current?.click()}
-                    className="flex items-center justify-center transition-colors duration-200 hover:bg-white/[0.16]"
+                    className="skeu-btn flex items-center justify-center"
                     style={{
                       width: 76,
                       borderRadius: 967,
-                      background: FLAT_BTN_PRIMARY,
+                      boxShadow: SKEU_BTN_SHADOW,
                     }}
                   >
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -1248,10 +1506,10 @@ function App() {
                     type="button"
                     disabled={!asciiData}
                     onClick={handleExportClick}
-                    className="flex-1 text-center transition-colors duration-200 hover:bg-white/[0.08] disabled:opacity-40"
+                    className="skeu-btn flex-1 text-center disabled:opacity-40"
                     style={{
                       borderRadius: 967,
-                      background: FLAT_BTN_SECONDARY,
+                      boxShadow: SKEU_BTN_SHADOW,
                       fontFamily: "Inter, sans-serif",
                       fontSize: 15,
                       fontWeight: 400,
