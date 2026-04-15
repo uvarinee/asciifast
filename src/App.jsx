@@ -155,49 +155,28 @@ function BackIcon({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center justify-center rounded-full w-8 h-8 transition-colors hover:bg-white/10"
+      className="menu-close-btn no-rotate flex items-center justify-center rounded-full"
+      style={{ width: 50, height: 50 }}
     >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M10 3L5 8L10 13" stroke="#BCBCBC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <img src="/icons/icon-back.svg" alt="" width={18} height={18} draggable={false} />
     </button>
   )
 }
 
 function OnboardingIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="9" stroke="#F2F2F2" strokeWidth="1.5" />
-      <path d="M12 7V12" stroke="#F2F2F2" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="12" cy="15.5" r="0.75" fill="#F2F2F2" />
-    </svg>
-  )
+  return <img src="/icons/icon-onboarding.svg" alt="" width={24} height={24} draggable={false} />
 }
 
 function FeedbackIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M4 5H20V15H12L7 19V15H4V5Z" stroke="#F2F2F2" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M8 9.5H16" stroke="#F2F2F2" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  )
+  return <img src="/icons/icon-feedback.svg" alt="" width={24} height={24} draggable={false} />
 }
 
 function AboutLogoIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="3" width="18" height="18" rx="5" stroke="#F2F2F2" strokeWidth="1.5" />
-      <circle cx="12" cy="12" r="3" stroke="#F2F2F2" strokeWidth="1.5" />
-    </svg>
-  )
+  return <img src="/icons/icon-logo.svg" alt="" width={24} height={24} draggable={false} style={{ borderRadius: 5.76 }} />
 }
 
 function SupportIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M12 21C12 21 4 16.5 4 10.5C4 7.46243 6.46243 5 9.5 5C10.9566 5 11.9566 5.58579 12 5.58579C12.0434 5.58579 13.0434 5 14.5 5C17.5376 5 20 7.46243 20 10.5C20 16.5 12 21 12 21Z" stroke="#F2F2F2" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  )
+  return <img src="/icons/icon-support.svg" alt="" width={24} height={24} draggable={false} />
 }
 
 function MenuModal({ isOpen, onClose }) {
@@ -250,147 +229,109 @@ function MenuModal({ isOpen, onClose }) {
       className={`fixed inset-0 z-40 flex items-center justify-center transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[12px]" />
+      <div className="absolute inset-0 bg-[#050505]/20 backdrop-blur-[32px]" />
       <div
-        className="relative z-10 overflow-hidden"
+        className="relative z-10 overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
         style={{
           width: 600,
-          height: 360,
+          height: activeSection === "onboarding" ? 460 : 360,
           borderRadius: 24,
-          border: "1px solid rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.10)",
           background: "#050505",
-          boxShadow: "0px 4px 20px -8px black",
+          boxShadow: "0px 4px 20px -8px rgba(0,0,0,1)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="absolute flex items-center" style={{ left: 31, top: 0, height: 80 }}>
-          {activeSection ? (
-            <div className="flex items-center gap-2">
-              <BackIcon onClick={() => setActiveSection(null)} />
-              <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 16, fontWeight: 400, letterSpacing: "-0.01em", color: "#F2F2F2" }}>
-                {sectionTitles[activeSection]}
-              </p>
-            </div>
-          ) : (
+        {activeSection ? (
+          <div className="absolute flex items-center gap-[12px]" style={{ left: 16, top: 16 }}>
+            <BackIcon onClick={() => setActiveSection(null)} />
+            <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 16, fontWeight: 400, letterSpacing: "-0.01em", color: "#F2F2F2" }}>
+              {sectionTitles[activeSection]}
+            </p>
+          </div>
+        ) : (
+          <div className="absolute flex items-center" style={{ left: 31, top: 0, height: 80 }}>
             <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 16, fontWeight: 400, letterSpacing: "-0.01em", color: "#F2F2F2" }}>
               Menu
             </p>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Close button */}
-        <div
-          className="absolute flex items-center justify-center transition-colors hover:bg-white/10"
-          style={{
-            right: 15,
-            top: 15,
-            width: 50,
-            height: 50,
-            borderRadius: 967,
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.02)",
-            cursor: "pointer",
-          }}
+        <button
+          type="button"
+          className="menu-close-btn absolute flex items-center justify-center rounded-full"
+          style={{ right: 16, top: 16, width: 50, height: 50 }}
           onClick={onClose}
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M11 3L3 11M3 3L11 11" stroke="#F2F2F2" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </div>
+          <img src="/icons/icon-close.svg" alt="" width={12} height={12} draggable={false} />
+        </button>
 
         {activeSection ? (
-          <div className="absolute" style={{ left: 7, top: 81, width: 584, bottom: 7 }}>
+          <div
+            className="absolute overflow-hidden"
+            style={{
+              left: 8,
+              top: 82,
+              width: 584,
+              bottom: 8,
+              borderRadius: 18,
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.02)",
+            }}
+          >
             <div
-              className="h-full overflow-y-auto thin-scrollbar"
+              className="h-full overflow-y-auto menu-scrollbar"
               onScroll={(e) => {
                 const el = e.currentTarget
                 setMenuAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 8)
               }}
             >
-              <div style={{ padding: "0 16px 16px 16px" }}>
+              <div style={{ padding: "24px 0 32px 0", width: 552, marginLeft: 16 }}>
                 {renderContent()}
               </div>
             </div>
             <div
               className="pointer-events-none absolute inset-x-0 bottom-0 transition-opacity duration-200"
               style={{
-                height: 48,
-                background: "linear-gradient(180deg, rgba(5,5,5,0) 0%, rgba(5,5,5,1) 90%)",
+                height: 80,
+                background: "linear-gradient(180deg, rgba(20,20,20,0) 0%, rgba(20,20,20,1) 77%)",
+                borderRadius: "0 0 18px 18px",
                 opacity: menuAtBottom ? 0 : 1,
               }}
             />
           </div>
         ) : (
           <div className="absolute flex flex-col" style={{ left: 7, top: 81, width: 584, gap: 6 }}>
-            <div className="flex" style={{ gap: 6 }}>
-              {menuItems.slice(0, 2).map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => handleItemClick(item.key)}
-                  className="relative flex-1 overflow-hidden transition-colors hover:bg-white/10"
-                  style={{
-                    height: 132,
-                    borderRadius: 16,
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.02)",
-                    boxShadow: "0px 0px 4px 0px black",
-                    textAlign: "left",
-                  }}
-                >
-                  <span className="absolute" style={{ left: 23, top: 23 }}>{item.icon}</span>
-                  <span
-                    className="absolute"
-                    style={{
-                      left: 23,
-                      bottom: 25,
-                      fontFamily: "'Geist Mono', monospace",
-                      fontSize: 16,
-                      fontWeight: 300,
-                      letterSpacing: "-0.01em",
-                      color: "#F2F2F2",
-                    }}
+            {[menuItems.slice(0, 2), menuItems.slice(2, 4)].map((row, ri) => (
+              <div key={ri} className="flex gap-[6px]">
+                {row.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => handleItemClick(item.key)}
+                    className="menu-tile relative flex-1 overflow-hidden text-left"
+                    style={{ height: 132, borderRadius: 16 }}
                   >
-                    {item.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <div className="flex" style={{ gap: 6 }}>
-              {menuItems.slice(2, 4).map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => handleItemClick(item.key)}
-                  className="relative flex-1 overflow-hidden transition-colors hover:bg-white/10"
-                  style={{
-                    height: 132,
-                    borderRadius: 16,
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.02)",
-                    boxShadow: "0px 0px 4px 0px black",
-                    textAlign: "left",
-                  }}
-                >
-                  <span className="absolute" style={{ left: 23, top: 23 }}>{item.icon}</span>
-                  <span
-                    className="absolute"
-                    style={{
-                      left: 23,
-                      bottom: 25,
-                      fontFamily: "'Geist Mono', monospace",
-                      fontSize: 16,
-                      fontWeight: 300,
-                      letterSpacing: "-0.01em",
-                      color: "#F2F2F2",
-                    }}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              ))}
-            </div>
+                    <span className="absolute" style={{ left: 23, top: 23 }}>{item.icon}</span>
+                    <span
+                      className="absolute"
+                      style={{
+                        left: 23,
+                        bottom: 25,
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: 16,
+                        fontWeight: 300,
+                        letterSpacing: "-0.01em",
+                        color: "#F2F2F2",
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -398,110 +339,70 @@ function MenuModal({ isOpen, onClose }) {
   )
 }
 
+function OnboardingSection({ title, imageSrc, imageAlt, children }) {
+  return (
+    <div className="flex flex-col" style={{ gap: 28 }}>
+      {title && (
+        <div style={{ padding: "0 32px 0 16px" }}>
+          <p
+            style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: 20,
+              fontWeight: 500,
+              lineHeight: "1em",
+              letterSpacing: "-0.01em",
+              color: "#F2F2F2",
+            }}
+          >
+            {title}
+          </p>
+        </div>
+      )}
+      <div className="flex flex-col" style={{ gap: 18 }}>
+        <div
+          className="overflow-hidden"
+          style={{
+            height: 220,
+            borderRadius: 16,
+            background: "#050505",
+          }}
+        >
+          <img src={imageSrc} alt={imageAlt} className="block h-full w-full object-cover" draggable={false} />
+        </div>
+        <div style={{ padding: "0 32px 0 16px" }}>
+          <p
+            style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: 15,
+              lineHeight: "1.37em",
+              fontWeight: 300,
+              letterSpacing: "-0.01em",
+              color: "#BCBCBC",
+            }}
+          >
+            {children}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function OnboardingContent() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <section>
-        <h3
-          style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: 16,
-            fontWeight: 500,
-            letterSpacing: "-0.02em",
-            color: "#F2F2F2",
-            marginBottom: 8,
-          }}
-        >
-          Upload Image
-        </h3>
-        <div
-          style={{
-            overflow: "hidden",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.06)",
-            background: "rgba(255,255,255,0.06)",
-            marginBottom: 12,
-          }}
-        >
-          <img src="/onboarding/upload-image.png" alt="Upload" style={{ width: "100%", display: "block" }} />
-        </div>
-        <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.5, fontWeight: 300, letterSpacing: "-0.01em", color: "#888" }}>
-          Upload an image to start. Drag and drop it into the canvas or use the upload button. App will instantly convert it into ASCII.
-        </p>
-      </section>
-      <section>
-        <h3
-          style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: 16,
-            fontWeight: 500,
-            letterSpacing: "-0.02em",
-            color: "#F2F2F2",
-            marginBottom: 8,
-          }}
-        >
-          Modes & Settings
-        </h3>
-        <div
-          style={{
-            overflow: "hidden",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.06)",
-            background: "rgba(255,255,255,0.06)",
-            marginBottom: 12,
-          }}
-        >
-          <img src="/onboarding/modes-settings.png" alt="Modes" style={{ width: "100%", display: "block" }} />
-        </div>
-        <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.5, fontWeight: 300, letterSpacing: "-0.01em", color: "#888" }}>
-          Switch between Image and Video modes. Each mode adapts the controls for different types of content. Choose the one that fits your workflow.
-        </p>
-      </section>
-      <section>
-        <div
-          style={{
-            overflow: "hidden",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.06)",
-            background: "rgba(255,255,255,0.06)",
-            marginBottom: 12,
-          }}
-        >
-          <img src="/onboarding/sliders.png" alt="Sliders" style={{ width: "100%", display: "block" }} />
-        </div>
-        <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.5, fontWeight: 300, letterSpacing: "-0.01em", color: "#888" }}>
-          Use sliders as presets to customize the ASCII style. Adjust the scale, contrast, variation, and other parameters to get different visual results.
-        </p>
-      </section>
-      <section>
-        <h3
-          style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: 16,
-            fontWeight: 500,
-            letterSpacing: "-0.02em",
-            color: "#F2F2F2",
-            marginBottom: 8,
-          }}
-        >
-          Export
-        </h3>
-        <div
-          style={{
-            overflow: "hidden",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.06)",
-            background: "rgba(255,255,255,0.06)",
-            marginBottom: 12,
-          }}
-        >
-          <img src="/onboarding/export.png" alt="Export" style={{ width: "100%", display: "block" }} />
-        </div>
-        <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.5, fontWeight: 300, letterSpacing: "-0.01em", color: "#888" }}>
-          Export your result when you're ready. Save the ASCII output as an image or use it in your workflow.
-        </p>
-      </section>
-      <div style={{ height: 16 }} />
+    <div className="flex flex-col" style={{ gap: 52 }}>
+      <OnboardingSection title="Upload Image" imageSrc="/onboarding/upload-image.png" imageAlt="Upload">
+        Upload an image to start. Drag and drop it into the canvas or use the upload button. Asky will instantly convert it into ASCII.
+      </OnboardingSection>
+      <OnboardingSection title="Modes & Settings" imageSrc="/onboarding/modes-settings.png" imageAlt="Modes">
+        Switch between Image and Video modes. Each mode adapts the controls for different types of content. Choose the one that fits your workflow.
+      </OnboardingSection>
+      <OnboardingSection imageSrc="/onboarding/sliders.png" imageAlt="Sliders">
+        Use sliders as presets to customize the ASCII style. Adjust the scale, contrast, variation, and other parameters to get different visual results.
+      </OnboardingSection>
+      <OnboardingSection title="Export" imageSrc="/onboarding/export.png" imageAlt="Export">
+        Export your result when you're ready. Save the ASCII output as an image or use it in your workflow.
+      </OnboardingSection>
     </div>
   )
 }
