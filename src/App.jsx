@@ -1,5 +1,19 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Slider } from "@/components/ui/slider"
+
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`)
+    const handler = (e) => setIsMobile(e.matches)
+    mq.addEventListener("change", handler)
+    setIsMobile(mq.matches)
+    return () => mq.removeEventListener("change", handler)
+  }, [breakpoint])
+  return isMobile
+}
 
 const SYMBOLS = " .,:1i7r352x4e6a8k90dNM#&@"
 
@@ -150,15 +164,16 @@ function MenuSvgIcon() {
 }
 
 
-function BackIcon({ onClick }) {
+function BackIcon({ onClick, size = 50 }) {
+  const iconSize = size >= 50 ? 18 : 14
   return (
     <button
       type="button"
       onClick={onClick}
       className="menu-close-btn no-rotate flex items-center justify-center rounded-full"
-      style={{ width: 50, height: 50 }}
+      style={{ width: size, height: size }}
     >
-      <img src="/icons/icon-back.svg" alt="" width={18} height={18} draggable={false} />
+      <img src="/icons/icon-back.svg" alt="" width={iconSize} height={iconSize} draggable={false} />
     </button>
   )
 }
@@ -179,9 +194,10 @@ function SupportIcon() {
   return <img src="/icons/icon-support.svg" alt="" width={24} height={24} draggable={false} />
 }
 
-function MenuModal({ isOpen, onClose }) {
+function MenuModal({ isOpen, onClose, isMobile }) {
   const [activeSection, setActiveSection] = useState(null)
   const [menuAtBottom, setMenuAtBottom] = useState(false)
+  const [menuAtTop, setMenuAtTop] = useState(true)
 
   useEffect(() => {
     if (!isOpen) {
@@ -192,6 +208,7 @@ function MenuModal({ isOpen, onClose }) {
 
   useEffect(() => {
     setMenuAtBottom(false)
+    setMenuAtTop(true)
   }, [activeSection])
 
   if (!isOpen && !activeSection) return null
@@ -212,7 +229,7 @@ function MenuModal({ isOpen, onClose }) {
   }
 
   function renderContent() {
-    if (activeSection === "onboarding") return <OnboardingContent />
+    if (activeSection === "onboarding") return <OnboardingContent isMobile={isMobile} />
     if (activeSection === "about") return <AboutVersionContent />
     if (activeSection === "support") return <SupportContent />
     return null
@@ -222,6 +239,141 @@ function MenuModal({ isOpen, onClose }) {
     onboarding: "Onboarding",
     about: "About Version 3.0",
     support: "Support",
+  }
+
+  if (isMobile) {
+    const sheetHeight = activeSection === "onboarding" ? 560 : activeSection ? 400 : null
+
+    return (
+      <div
+        className={`fixed inset-0 z-40 flex items-end justify-center transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        onClick={onClose}
+      >
+        <div className="absolute inset-0 bg-[#050505]/20 backdrop-blur-[32px]" />
+        <div
+          className="relative z-10 overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          style={{
+            width: "calc(100% - 40px)",
+            maxWidth: 400,
+            ...(sheetHeight ? { height: sheetHeight } : {}),
+            maxHeight: "calc(100% - 60px)",
+            borderRadius: 24,
+            border: "1px solid rgba(255,255,255,0.10)",
+            background: "#050505",
+            boxShadow: "0px 4px 20px -8px rgba(0,0,0,1)",
+            marginBottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {activeSection ? (
+            <>
+              <div className="flex items-center justify-between" style={{ padding: "12px 12px 0 12px" }}>
+                <div className="flex items-center gap-[10px]">
+                  <BackIcon onClick={() => setActiveSection(null)} size={40} />
+                  <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 15, fontWeight: 400, letterSpacing: "-0.01em", color: "#F2F2F2" }}>
+                    {sectionTitles[activeSection]}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="menu-close-btn flex items-center justify-center rounded-full"
+                  style={{ width: 40, height: 40 }}
+                  onClick={onClose}
+                >
+                  <img src="/icons/icon-close.svg" alt="" width={10} height={10} draggable={false} />
+                </button>
+              </div>
+              <div
+                className="overflow-hidden"
+                style={{
+                  margin: "12px 8px 8px 8px",
+                  borderRadius: 16,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.02)",
+                  height: sheetHeight ? `calc(100% - 76px)` : "auto",
+                }}
+              >
+                <div
+                  className={`h-full ${activeSection === "onboarding" ? "overflow-y-auto menu-scrollbar" : "overflow-hidden"}`}
+                  onScroll={activeSection === "onboarding" ? (e) => {
+                    const el = e.currentTarget
+                    setMenuAtTop(el.scrollTop < 8)
+                    setMenuAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 8)
+                  } : undefined}
+                >
+                  <div style={{ padding: "20px 16px 28px 16px" }}>
+                    {renderContent()}
+                  </div>
+                </div>
+                {activeSection === "onboarding" && (
+                  <>
+                    <div
+                      className="pointer-events-none absolute inset-x-[8px] transition-opacity duration-200"
+                      style={{
+                        top: 76,
+                        height: 60,
+                        background: "linear-gradient(0deg, rgba(20,20,20,0) 0%, rgba(20,20,20,1) 77%)",
+                        borderRadius: "16px 16px 0 0",
+                        opacity: menuAtTop ? 0 : 1,
+                      }}
+                    />
+                    <div
+                      className="pointer-events-none absolute inset-x-[8px] bottom-[8px] transition-opacity duration-200"
+                      style={{
+                        height: 60,
+                        background: "linear-gradient(180deg, rgba(20,20,20,0) 0%, rgba(20,20,20,1) 77%)",
+                        borderRadius: "0 0 16px 16px",
+                        opacity: menuAtBottom ? 0 : 1,
+                      }}
+                    />
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between" style={{ padding: "0 12px 0 24px", height: 60 }}>
+                <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 15, fontWeight: 400, letterSpacing: "-0.01em", color: "#F2F2F2" }}>
+                  Menu
+                </p>
+                <button
+                  type="button"
+                  className="menu-close-btn flex items-center justify-center rounded-full"
+                  style={{ width: 40, height: 40 }}
+                  onClick={onClose}
+                >
+                  <img src="/icons/icon-close.svg" alt="" width={10} height={10} draggable={false} />
+                </button>
+              </div>
+              <div className="flex flex-col" style={{ padding: "0 8px 8px 8px", gap: 4 }}>
+                {menuItems.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => handleItemClick(item.key)}
+                    className="menu-tile flex items-center gap-[14px] overflow-hidden text-left"
+                    style={{ height: 52, borderRadius: 12, paddingLeft: 16, paddingRight: 16 }}
+                  >
+                    <span className="shrink-0">{item.icon}</span>
+                    <span
+                      style={{
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: 14,
+                        fontWeight: 300,
+                        letterSpacing: "-0.01em",
+                        color: "#F2F2F2",
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -234,7 +386,7 @@ function MenuModal({ isOpen, onClose }) {
         className="relative z-10 overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
         style={{
           width: 600,
-          height: activeSection === "onboarding" ? 460 : 360,
+          height: activeSection === "onboarding" ? 520 : 360,
           borderRadius: 24,
           border: "1px solid rgba(255,255,255,0.10)",
           background: "#050505",
@@ -281,25 +433,39 @@ function MenuModal({ isOpen, onClose }) {
             }}
           >
             <div
-              className="h-full overflow-y-auto menu-scrollbar"
-              onScroll={(e) => {
+              className={`h-full ${activeSection === "onboarding" ? "overflow-y-auto menu-scrollbar" : "overflow-hidden"}`}
+              onScroll={activeSection === "onboarding" ? (e) => {
                 const el = e.currentTarget
+                setMenuAtTop(el.scrollTop < 8)
                 setMenuAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 8)
-              }}
+              } : undefined}
             >
               <div style={{ padding: "24px 0 32px 0", width: 552, marginLeft: 16 }}>
                 {renderContent()}
               </div>
             </div>
-            <div
-              className="pointer-events-none absolute inset-x-0 bottom-0 transition-opacity duration-200"
-              style={{
-                height: 80,
-                background: "linear-gradient(180deg, rgba(20,20,20,0) 0%, rgba(20,20,20,1) 77%)",
-                borderRadius: "0 0 18px 18px",
-                opacity: menuAtBottom ? 0 : 1,
-              }}
-            />
+            {activeSection === "onboarding" && (
+              <>
+                <div
+                  className="pointer-events-none absolute inset-x-0 top-0 transition-opacity duration-200"
+                  style={{
+                    height: 80,
+                    background: "linear-gradient(0deg, rgba(20,20,20,0) 0%, rgba(20,20,20,1) 77%)",
+                    borderRadius: "18px 18px 0 0",
+                    opacity: menuAtTop ? 0 : 1,
+                  }}
+                />
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 transition-opacity duration-200"
+                  style={{
+                    height: 80,
+                    background: "linear-gradient(180deg, rgba(20,20,20,0) 0%, rgba(20,20,20,1) 77%)",
+                    borderRadius: "0 0 18px 18px",
+                    opacity: menuAtBottom ? 0 : 1,
+                  }}
+                />
+              </>
+            )}
           </div>
         ) : (
           <div className="absolute flex flex-col" style={{ left: 7, top: 81, width: 584, gap: 6 }}>
@@ -339,15 +505,15 @@ function MenuModal({ isOpen, onClose }) {
   )
 }
 
-function OnboardingSection({ title, imageSrc, imageAlt, children }) {
+function OnboardingSection({ title, imageSrc, imageAlt, children, isMobile }) {
   return (
-    <div className="flex flex-col" style={{ gap: 28 }}>
+    <div className="flex flex-col" style={{ gap: isMobile ? 20 : 28 }}>
       {title && (
-        <div style={{ padding: "0 32px 0 16px" }}>
+        <div style={{ padding: isMobile ? "0" : "0 32px 0 16px" }}>
           <p
             style={{
               fontFamily: "'Geist Mono', monospace",
-              fontSize: 20,
+              fontSize: isMobile ? 17 : 20,
               fontWeight: 500,
               lineHeight: "1em",
               letterSpacing: "-0.01em",
@@ -358,22 +524,22 @@ function OnboardingSection({ title, imageSrc, imageAlt, children }) {
           </p>
         </div>
       )}
-      <div className="flex flex-col" style={{ gap: 18 }}>
+      <div className="flex flex-col" style={{ gap: isMobile ? 14 : 18 }}>
         <div
           className="overflow-hidden"
           style={{
-            height: 220,
-            borderRadius: 16,
+            height: isMobile ? 180 : 220,
+            borderRadius: isMobile ? 12 : 16,
             background: "#050505",
           }}
         >
           <img src={imageSrc} alt={imageAlt} className="block h-full w-full object-cover" draggable={false} />
         </div>
-        <div style={{ padding: "0 32px 0 16px" }}>
+        <div style={{ padding: isMobile ? "0" : "0 32px 0 16px" }}>
           <p
             style={{
               fontFamily: "'Geist Mono', monospace",
-              fontSize: 15,
+              fontSize: isMobile ? 13 : 15,
               lineHeight: "1.37em",
               fontWeight: 300,
               letterSpacing: "-0.01em",
@@ -388,19 +554,19 @@ function OnboardingSection({ title, imageSrc, imageAlt, children }) {
   )
 }
 
-function OnboardingContent() {
+function OnboardingContent({ isMobile }) {
   return (
-    <div className="flex flex-col" style={{ gap: 52 }}>
-      <OnboardingSection title="Upload Image" imageSrc="/onboarding/upload-image.png" imageAlt="Upload">
-        Upload an image to start. Drag and drop it into the canvas or use the upload button. Asky will instantly convert it into ASCII.
+    <div className="flex flex-col" style={{ gap: isMobile ? 36 : 52 }}>
+      <OnboardingSection isMobile={isMobile} title="Upload Image" imageSrc={isMobile ? "/onboarding/mobile-upload-image-2.png" : "/onboarding/upload-image.png"} imageAlt="Upload">
+        Upload an image to start. Drag and drop it into the canvas or use the upload button. Asciifast will instantly convert it into ASCII.
       </OnboardingSection>
-      <OnboardingSection title="Modes & Settings" imageSrc="/onboarding/modes-settings.png" imageAlt="Modes">
+      <OnboardingSection isMobile={isMobile} title="Modes & Settings" imageSrc={isMobile ? "/onboarding/mobile-modes-settings-2.png" : "/onboarding/modes-settings.png"} imageAlt="Modes">
         Switch between Image and Video modes. Each mode adapts the controls for different types of content. Choose the one that fits your workflow.
       </OnboardingSection>
-      <OnboardingSection imageSrc="/onboarding/sliders.png" imageAlt="Sliders">
+      <OnboardingSection isMobile={isMobile} imageSrc={isMobile ? "/onboarding/mobile-sliders-2.png" : "/onboarding/sliders.png"} imageAlt="Sliders">
         Use sliders as presets to customize the ASCII style. Adjust the scale, contrast, variation, and other parameters to get different visual results.
       </OnboardingSection>
-      <OnboardingSection title="Export" imageSrc="/onboarding/export.png" imageAlt="Export">
+      <OnboardingSection isMobile={isMobile} title="Export" imageSrc={isMobile ? "/onboarding/mobile-export-2.png" : "/onboarding/export.png"} imageAlt="Export">
         Export your result when you're ready. Save the ASCII output as an image or use it in your workflow.
       </OnboardingSection>
     </div>
@@ -409,18 +575,30 @@ function OnboardingContent() {
 
 function AboutVersionContent() {
   return (
-    <div
-      style={{
-        borderRadius: 16,
-        border: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(255,255,255,0.06)",
-        padding: 20,
-      }}
-    >
-      <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.6, fontWeight: 300, color: "#888" }}>
+    <div style={{ padding: "0 32px 0 16px" }}>
+      <p
+        style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: 15,
+          lineHeight: "1.37em",
+          fontWeight: 300,
+          letterSpacing: "-0.01em",
+          color: "#BCBCBC",
+        }}
+      >
         Version 3.0 introduces a refined interface and improved ASCII rendering. The styling engine has been updated with grayscale gradations and more responsive character density for smoother visual results.
       </p>
-      <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.6, fontWeight: 300, color: "#888", marginTop: 16 }}>
+      <p
+        style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: 15,
+          lineHeight: "1.37em",
+          fontWeight: 300,
+          letterSpacing: "-0.01em",
+          color: "#BCBCBC",
+          marginTop: 20,
+        }}
+      >
         Controls have been redesigned with clearer naming and better sensitivity, making it easier to fine-tune the ASCII style and explore variations.
       </p>
     </div>
@@ -429,30 +607,30 @@ function AboutVersionContent() {
 
 function SupportContent() {
   return (
-    <div
-      style={{
-        borderRadius: 16,
-        border: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(255,255,255,0.06)",
-        padding: 20,
-      }}
-    >
-      <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, lineHeight: 1.6, fontWeight: 300, color: "#888" }}>
-        If you like ASCIIFAST, you can support its development. Your support helps me to continue improving the tool and create new independent design experiments. For support, you can contact me directly via Telegram.
+    <div style={{ padding: "0 32px 0 16px" }}>
+      <p
+        style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: 15,
+          lineHeight: "1.37em",
+          fontWeight: 300,
+          letterSpacing: "-0.01em",
+          color: "#BCBCBC",
+        }}
+      >
+        If you like asciifast, you can support its development. Your support helps me to continue improving the tool and create new independent design experiments. For support, you can contact me directly via Telegram.
       </p>
       <a
         href="https://t.me/uvarine"
         target="_blank"
         rel="noopener noreferrer"
+        className="menu-pill-btn"
         style={{
           display: "inline-block",
-          marginTop: 16,
-          borderRadius: 967,
-          background: "rgba(255,255,255,0.06)",
-          border: "1px solid rgba(255,255,255,0.04)",
-          padding: "8px 16px",
+          marginTop: 20,
+          padding: "9px 16px 10px 16px",
           fontFamily: "'Geist Mono', monospace",
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: 500,
           color: "#F2F2F2",
           textDecoration: "none",
@@ -464,11 +642,11 @@ function SupportContent() {
   )
 }
 
-function SliderRow({ label, value, onChange, min = 0, max = 100, step = 1 }) {
+function SliderRow({ label, value, onChange, min = 0, max = 100, step = 1, fontSize = 14 }) {
   return (
     <div className="flex flex-col gap-[6px]">
-      <p className="text-[14px] font-light tracking-[-0.01em] text-[#BCBCBC]" style={{ fontFamily: "'Geist Mono', monospace" }}>
-        {label}: {value}%
+      <p className="font-light tracking-[-0.01em] text-[#BCBCBC]" style={{ fontFamily: "'Geist Mono', monospace", fontSize }}>
+        {label}: <span className="font-medium">{value}%</span>
       </p>
       <Slider value={[value]} min={min} max={max} step={step} onValueChange={(v) => onChange(v?.[0] ?? value)} />
     </div>
@@ -476,6 +654,7 @@ function SliderRow({ label, value, onChange, min = 0, max = 100, step = 1 }) {
 }
 
 function App() {
+  const isMobile = useIsMobile()
   const inputRef = useRef(null)
   const previewContainerRef = useRef(null)
   const previewCanvasRef = useRef(null)
@@ -485,6 +664,8 @@ function App() {
   const panStartRef = useRef({ x: 0, y: 0 })
   const panOriginRef = useRef({ x: 0, y: 0 })
   const optionsScrollRef = useRef(null)
+  const mobileScrollRef = useRef(null)
+  const mobileHeaderRef = useRef(null)
 
   const [activeTab, setActiveTab] = useState("image")
   const [imageUrl, setImageUrl] = useState("")
@@ -516,6 +697,8 @@ function App() {
   const [exportProgress, setExportProgress] = useState(0)
   const [pixelCacheVer, setPixelCacheVer] = useState(0)
   const [optionsAtBottom, setOptionsAtBottom] = useState(false)
+  const [mobilePreviewStuck, setMobilePreviewStuck] = useState(false)
+  const [mobileOptionsFadeTop, setMobileOptionsFadeTop] = useState(false)
 
   useEffect(() => {
     let frame = 0
@@ -1080,18 +1263,18 @@ function App() {
             isSplashFading ? "opacity-0 duration-200" : "opacity-100 duration-0"
           }`}
         >
-          <div className="flex flex-col items-center" style={{ gap: 28 }}>
-            <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 28, letterSpacing: "-1.12px", textAlign: "center" }}>
+          <div className="flex flex-col items-center" style={{ gap: isMobile ? 22 : 28 }}>
+            <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: isMobile ? 22 : 28, letterSpacing: "-1.12px", textAlign: "center" }}>
               <span className="text-white">ascii</span>
               <span style={{ color: "rgba(255,255,255,0.5)" }}>fast</span>
             </p>
-            <div className="flex flex-col items-center" style={{ gap: 20 }}>
+            <div className="flex flex-col items-center" style={{ gap: isMobile ? 12 : 20 }}>
               <img
                 src="/splash-image.png"
                 alt="asciifast splash mark"
-                style={{ width: 200, height: 200, borderRadius: 48, objectFit: "cover" }}
+                style={{ width: isMobile ? 120 : 200, height: isMobile ? 120 : 200, borderRadius: isMobile ? 28 : 48, objectFit: "cover" }}
               />
-              <div className="h-[8px] w-[160px] rounded-[4px] bg-[#2E2E2E]">
+              <div className="h-[8px] rounded-[4px] bg-[#2E2E2E]" style={{ width: isMobile ? 120 : 160 }}>
                 <div
                   className="h-full rounded-[19px] bg-[linear-gradient(90deg,#747474_0%,#F8F8F8_100%)]"
                   style={{ width: `${splashProgress * 100}%` }}
@@ -1105,326 +1288,386 @@ function App() {
         </section>
       ) : null}
 
-      <MenuModal isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+      <MenuModal isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} isMobile={isMobile} />
 
       <div
         className={`h-full transition-all duration-300 ${
           isSplashVisible ? "scale-[0.992] opacity-0" : "scale-100 opacity-100"
         }`}
       >
-        <div className="flex h-full" style={{ padding: 24, gap: 24 }}>
-          {/* Left column */}
-          <div className="flex flex-1 min-w-0 flex-col" style={{ gap: 24 }}>
-            {/* Title bar — h=88 */}
-            <div
-              className="flex shrink-0 items-center justify-between rounded-[24px] bg-[#0D0D0D]"
-              style={{ height: 88, paddingLeft: 16, paddingRight: 16 }}
-            >
-              <div className="flex h-[56px] w-[56px] items-center justify-center">
-                <LogoIcon />
-              </div>
-              <p
-                className="text-[18px] font-normal tracking-[-0.02em] text-[#BABABA]/60"
-                style={{ fontFamily: "'Geist Mono', monospace" }}
-              >
-                asciifast
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsMenuOpen(true)}
-                className="flex h-[56px] w-[56px] items-center justify-center transition-opacity hover:opacity-80"
-              >
-                <MenuSvgIcon />
-              </button>
-            </div>
-
-            {/* Preview area — fills remaining */}
-            <div
-              className="relative flex flex-1 min-h-0 overflow-hidden rounded-[24px]"
-              style={{ padding: 1, background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)" }}
-              onDragEnter={handleDragEnter}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
+        {isMobile ? (
+          /* ===================== MOBILE LAYOUT ===================== */
+          <MobileLayout
+            inputRef={inputRef}
+            previewContainerRef={previewContainerRef}
+            previewCanvasRef={previewCanvasRef}
+            mobileScrollRef={mobileScrollRef}
+            mobileHeaderRef={mobileHeaderRef}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            imageUrl={imageUrl}
+            asciiData={asciiData}
+            contentAnchorSize={contentAnchorSize}
+            fitScale={fitScale}
+            userZoom={userZoom}
+            pan={pan}
+            isInverted={isInverted}
+            setIsInverted={setIsInverted}
+            isColorInverted={isColorInverted}
+            setIsColorInverted={setIsColorInverted}
+            isPanningRef={isPanningRef}
+            scale={scale}
+            setScale={setScale}
+            size={size}
+            setSize={setSize}
+            variation={variation}
+            setVariation={setVariation}
+            contrast={contrast}
+            setContrast={setContrast}
+            brightness={brightness}
+            setBrightness={setBrightness}
+            depth={depth}
+            setDepth={setDepth}
+            animChaos={animChaos}
+            setAnimChaos={setAnimChaos}
+            animAmplitude={animAmplitude}
+            setAnimAmplitude={setAnimAmplitude}
+            animDensity={animDensity}
+            setAnimDensity={setAnimDensity}
+            isExporting={isExporting}
+            exportProgress={exportProgress}
+            showExportOptions={showExportOptions}
+            setShowExportOptions={setShowExportOptions}
+            handleExportClick={handleExportClick}
+            downloadAsciiPng={downloadAsciiPng}
+            applyPreset={applyPreset}
+            handleDragEnter={handleDragEnter}
+            handleDragOver={handleDragOver}
+            handleDragLeave={handleDragLeave}
+            handleDrop={handleDrop}
+            handlePreviewWheel={handlePreviewWheel}
+            handlePreviewMouseDown={handlePreviewMouseDown}
+            handlePreviewMouseMove={handlePreviewMouseMove}
+            stopPanning={stopPanning}
+            setIsMenuOpen={setIsMenuOpen}
+            mobilePreviewStuck={mobilePreviewStuck}
+            setMobilePreviewStuck={setMobilePreviewStuck}
+            mobileOptionsFadeTop={mobileOptionsFadeTop}
+            setMobileOptionsFadeTop={setMobileOptionsFadeTop}
+          />
+        ) : (
+          /* ===================== DESKTOP LAYOUT (unchanged) ===================== */
+          <div className="flex h-full" style={{ padding: 24, gap: 24 }}>
+            {/* Left column */}
+            <div className="flex flex-1 min-w-0 flex-col" style={{ gap: 24 }}>
+              {/* Title bar — h=88 */}
               <div
-                className="flex-1 rounded-[23px] overflow-hidden"
-                style={{ background: "linear-gradient(180deg, rgba(23,23,23,1) 0%, rgba(21,21,21,1) 100%)" }}
+                className="flex shrink-0 items-center justify-between rounded-[24px] bg-[#0D0D0D]"
+                style={{ height: 88, paddingLeft: 16, paddingRight: 16 }}
               >
-                <div className="m-[8px] rounded-[16px] overflow-hidden h-[calc(100%-16px)]">
-                  <div
-                    ref={previewContainerRef}
-                    className="staggered-dots relative flex h-full w-full items-center justify-center overflow-hidden"
-                    style={{ cursor: imageUrl ? (isPanningRef.current ? "grabbing" : "grab") : "default" }}
-                    onWheel={imageUrl ? handlePreviewWheel : undefined}
-                    onMouseDown={imageUrl ? handlePreviewMouseDown : undefined}
-                    onMouseMove={imageUrl ? handlePreviewMouseMove : undefined}
-                    onMouseUp={imageUrl ? stopPanning : undefined}
-                    onMouseLeave={imageUrl ? stopPanning : undefined}
-                  >
-                    {!imageUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => inputRef.current?.click()}
-                        className="flex items-center gap-2 rounded-full bg-white/[0.06] border border-white/[0.02] px-4 py-2.5 text-[14px] font-medium text-[#F2F2F2] backdrop-blur-[24px] transition-colors hover:bg-white/10"
-                        style={{ fontFamily: "'Geist Mono', monospace" }}
-                      >
-                        + Upload image
-                      </button>
-                    ) : (
-                      <div
-                        className={`absolute overflow-hidden rounded ${isInverted ? "bg-black" : "bg-white"}`}
-                        style={{
-                          width: contentAnchorSize ? `${contentAnchorSize.width * fitScale * userZoom}px` : "100%",
-                          height: contentAnchorSize ? `${contentAnchorSize.height * fitScale * userZoom}px` : "100%",
-                          left: "50%",
-                          top: "50%",
-                          transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px))`,
-                        }}
-                      >
-                        <canvas
-                          ref={previewCanvasRef}
-                          style={{ display: "block", width: "100%", height: "100%" }}
-                        />
-                      </div>
-                    )}
+                <div className="flex h-[56px] w-[56px] items-center justify-center">
+                  <LogoIcon />
+                </div>
+                <p
+                  className="text-[18px] font-normal tracking-[-0.02em] text-[#BABABA]/60"
+                  style={{ fontFamily: "'Geist Mono', monospace" }}
+                >
+                  asciifast
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen(true)}
+                  className="flex h-[56px] w-[56px] items-center justify-center transition-opacity hover:opacity-80"
+                >
+                  <MenuSvgIcon />
+                </button>
+              </div>
+
+              {/* Preview area — fills remaining */}
+              <div
+                className="relative flex flex-1 min-h-0 overflow-hidden rounded-[24px]"
+                style={{ padding: 1, background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)" }}
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div
+                  className="flex-1 rounded-[23px] overflow-hidden"
+                  style={{ background: "linear-gradient(180deg, rgba(23,23,23,1) 0%, rgba(21,21,21,1) 100%)" }}
+                >
+                  <div className="m-[8px] rounded-[16px] overflow-hidden h-[calc(100%-16px)]">
+                    <div
+                      ref={previewContainerRef}
+                      className="staggered-dots relative flex h-full w-full items-center justify-center overflow-hidden"
+                      style={{ cursor: imageUrl ? (isPanningRef.current ? "grabbing" : "grab") : "default" }}
+                      onWheel={imageUrl ? handlePreviewWheel : undefined}
+                      onMouseDown={imageUrl ? handlePreviewMouseDown : undefined}
+                      onMouseMove={imageUrl ? handlePreviewMouseMove : undefined}
+                      onMouseUp={imageUrl ? stopPanning : undefined}
+                      onMouseLeave={imageUrl ? stopPanning : undefined}
+                    >
+                      {!imageUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => inputRef.current?.click()}
+                          className="flex items-center gap-2 rounded-full bg-white/[0.06] border border-white/[0.02] px-4 py-2.5 text-[14px] font-medium text-[#F2F2F2] backdrop-blur-[24px] transition-colors hover:bg-white/10"
+                          style={{ fontFamily: "'Geist Mono', monospace" }}
+                        >
+                          + Upload image
+                        </button>
+                      ) : (
+                        <div
+                          className={`absolute overflow-hidden rounded ${isInverted ? "bg-black" : "bg-white"}`}
+                          style={{
+                            width: contentAnchorSize ? `${contentAnchorSize.width * fitScale * userZoom}px` : "100%",
+                            height: contentAnchorSize ? `${contentAnchorSize.height * fitScale * userZoom}px` : "100%",
+                            left: "50%",
+                            top: "50%",
+                            transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px))`,
+                          }}
+                        >
+                          <canvas
+                            ref={previewCanvasRef}
+                            style={{ display: "block", width: "100%", height: "100%" }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Right column — w=438 */}
-          <div className="flex flex-col shrink-0" style={{ width: 438, gap: 24 }}>
-            {/* Tabs — h=88 */}
-            <div
-              className="relative flex shrink-0 items-center"
-              style={{ height: 88, borderRadius: 96, background: "#0D0D0D", padding: 6 }}
-            >
+            {/* Right column — w=438 */}
+            <div className="flex flex-col shrink-0" style={{ width: 438, gap: 24 }}>
+              {/* Tabs — h=88 */}
               <div
-                className="pointer-events-none absolute transition-[left] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                style={{
-                  width: "calc(50% - 6px)",
-                  height: "calc(100% - 12px)",
-                  top: 6,
-                  left: activeTab === "image" ? 6 : "calc(50%)",
-                  borderRadius: 967,
-                  background: "rgba(255,255,255,0.1)",
-                  boxShadow: SKEU_TAB_SHADOW,
-                }}
-              />
-              {["image", "video"].map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className="relative z-10 flex-1 text-center transition-colors duration-200 hover:brightness-110"
+                className="relative flex shrink-0 items-center"
+                style={{ height: 88, borderRadius: 96, background: "#0D0D0D", padding: 6 }}
+              >
+                <div
+                  className="pointer-events-none absolute transition-[left] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)]"
                   style={{
-                    height: "100%",
+                    width: "calc(50% - 6px)",
+                    height: "calc(100% - 12px)",
+                    top: 6,
+                    left: activeTab === "image" ? 6 : "calc(50%)",
                     borderRadius: 967,
-                    fontFamily: "Inter, sans-serif",
-                    fontSize: 15,
-                    fontWeight: 400,
-                    letterSpacing: "-0.04em",
-                    color: activeTab === tab ? "#F2F2F2" : "#BABABA",
+                    background: "rgba(255,255,255,0.1)",
+                    boxShadow: SKEU_TAB_SHADOW,
                   }}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </div>
-
-            {/* Dark image mode & Invert Colors */}
-            <div
-              className="flex shrink-0 flex-col gap-[22px] rounded-[20px] bg-[#0D0D0D] overflow-hidden"
-              style={{ padding: 24 }}
-            >
-              <div className="flex items-center justify-between">
-                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 14, fontWeight: 300, letterSpacing: "-0.01em", color: "#BCBCBC" }}>
-                  Dark Image Mode
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsInverted((c) => !c)}
-                  className="relative shrink-0 rounded-full transition-colors"
-                  style={{ width: 36, height: 20, background: isInverted ? "#E6E6E6" : "#333" }}
-                >
-                  <span
-                    className="absolute top-[2px] block rounded-full transition-[left] duration-200"
-                    style={{ width: 16, height: 16, background: isInverted ? "#0D0D0D" : "#888", left: isInverted ? 18 : 2 }}
-                  />
-                </button>
+                />
+                {["image", "video"].map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setActiveTab(tab)}
+                    className="relative z-10 flex-1 text-center transition-colors duration-200 hover:brightness-110"
+                    style={{
+                      height: "100%",
+                      borderRadius: 967,
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: 15,
+                      fontWeight: 400,
+                      letterSpacing: "-0.04em",
+                      color: activeTab === tab ? "#F2F2F2" : "#BABABA",
+                    }}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+                ))}
               </div>
-              <svg className="w-full shrink-0" height="1" xmlns="http://www.w3.org/2000/svg">
-                <line x1="0" y1="0.5" x2="100%" y2="0.5" stroke="#333" strokeWidth="1" strokeDasharray="8 8" />
-              </svg>
-              <div className="flex items-center justify-between">
-                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 14, fontWeight: 300, letterSpacing: "-0.01em", color: "#BCBCBC" }}>
-                  Invert Colors
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsColorInverted((c) => !c)}
-                  className="relative shrink-0 rounded-full transition-colors"
-                  style={{ width: 36, height: 20, background: isColorInverted ? "#E6E6E6" : "#333" }}
-                >
-                  <span
-                    className="absolute top-[2px] block rounded-full transition-[left] duration-200"
-                    style={{ width: 16, height: 16, background: isColorInverted ? "#0D0D0D" : "#888", left: isColorInverted ? 18 : 2 }}
-                  />
-                </button>
-              </div>
-            </div>
 
-            {activeTab === "video" && (
-              <div className="shrink-0 rounded-[24px] bg-[#0D0D0D] overflow-hidden" style={{ padding: 24 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                  <SliderRow label="Chaos" value={animChaos} onChange={setAnimChaos} />
-                  <SliderRow label="Amplitude" value={animAmplitude} onChange={setAnimAmplitude} />
-                  <SliderRow label="Animation density" value={animDensity} onChange={setAnimDensity} />
+              {/* Dark image mode & Invert Colors */}
+              <div
+                className="flex shrink-0 flex-col gap-[22px] rounded-[20px] bg-[#0D0D0D] overflow-hidden"
+                style={{ padding: 24 }}
+              >
+                <div className="flex items-center justify-between">
+                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 14, fontWeight: 300, letterSpacing: "-0.01em", color: "#BCBCBC" }}>
+                    Dark Image Mode
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsInverted((c) => !c)}
+                    className="relative shrink-0 rounded-full transition-colors"
+                    style={{ width: 36, height: 20, background: isInverted ? "#E6E6E6" : "#333" }}
+                  >
+                    <span
+                      className="absolute top-[2px] block rounded-full transition-[left] duration-200"
+                      style={{ width: 16, height: 16, background: isInverted ? "#0D0D0D" : "#888", left: isInverted ? 18 : 2 }}
+                    />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 14, fontWeight: 300, letterSpacing: "-0.01em", color: "#BCBCBC" }}>
+                    Invert Colors
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsColorInverted((c) => !c)}
+                    className="relative shrink-0 rounded-full transition-colors"
+                    style={{ width: 36, height: 20, background: isColorInverted ? "#E6E6E6" : "#333" }}
+                  >
+                    <span
+                      className="absolute top-[2px] block rounded-full transition-[left] duration-200"
+                      style={{ width: 16, height: 16, background: isColorInverted ? "#0D0D0D" : "#888", left: isColorInverted ? 18 : 2 }}
+                    />
+                  </button>
                 </div>
               </div>
-            )}
 
-            {/* Options panel */}
-            <div className="relative flex-1 min-h-0 rounded-[24px] bg-[#0D0D0D] overflow-hidden">
-              <div ref={optionsScrollRef} className="h-full overflow-y-auto thin-scrollbar" style={{ padding: 24 }} onScroll={handleOptionsScroll}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                  <SliderRow label="Scale" value={scale} onChange={setScale} />
-                  <SliderRow label="Size" value={size} onChange={setSize} />
-                  <SliderRow label="Variation" value={variation} onChange={setVariation} />
-                  <SliderRow label="Contrast" value={contrast} onChange={setContrast} />
-                  <SliderRow label="Brightness" value={brightness} onChange={setBrightness} />
-                  <SliderRow label="Depth" value={depth} onChange={setDepth} />
+              {activeTab === "video" && (
+                <div className="shrink-0 rounded-[24px] bg-[#0D0D0D] overflow-hidden" style={{ padding: 24 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                    <SliderRow label="Chaos" value={animChaos} onChange={setAnimChaos} />
+                    <SliderRow label="Amplitude" value={animAmplitude} onChange={setAnimAmplitude} />
+                    <SliderRow label="Animation density" value={animDensity} onChange={setAnimDensity} />
+                  </div>
                 </div>
+              )}
 
-                <div style={{ height: 40 }} />
+              {/* Options panel */}
+              <div className="relative flex-1 min-h-0 rounded-[24px] bg-[#0D0D0D] overflow-hidden">
+                <div ref={optionsScrollRef} className="h-full overflow-y-auto thin-scrollbar" style={{ padding: 24 }} onScroll={handleOptionsScroll}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                    <SliderRow label="Scale" value={scale} onChange={setScale} />
+                    <SliderRow label="Size" value={size} onChange={setSize} />
+                    <SliderRow label="Variation" value={variation} onChange={setVariation} />
+                    <SliderRow label="Contrast" value={contrast} onChange={setContrast} />
+                    <SliderRow label="Brightness" value={brightness} onChange={setBrightness} />
+                    <SliderRow label="Depth" value={depth} onChange={setDepth} />
+                  </div>
 
-                <div className="grid grid-cols-2" style={{ rowGap: 8, columnGap: 6 }}>
-                  {PRESET_BUTTONS.map((preset) => (
+                  <div style={{ height: 40 }} />
+
+                  <div className="grid grid-cols-2" style={{ rowGap: 8, columnGap: 6 }}>
+                    {PRESET_BUTTONS.map((preset) => (
+                      <button
+                        key={preset.key}
+                        type="button"
+                        onClick={() => applyPreset(preset.key)}
+                        className="transition-colors hover:bg-white/10"
+                        style={{
+                          padding: "16px 24px",
+                          borderRadius: 967,
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.02)",
+                          fontFamily: "'Geist Mono', monospace",
+                          fontSize: 14,
+                          fontWeight: 500,
+                          color: "#F2F2F2",
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ height: 40 }} />
+                </div>
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 transition-opacity duration-200"
+                  style={{
+                    height: 168,
+                    background: "linear-gradient(180deg, rgba(13,13,13,0) 0%, rgba(13,13,13,1) 93%)",
+                    opacity: optionsAtBottom ? 0 : 1,
+                  }}
+                />
+              </div>
+
+              {/* Export bar — h=88 */}
+              <div
+                className="flex shrink-0 items-center"
+                style={{ height: 88, borderRadius: 48, background: "#0D0D0D", padding: 6 }}
+              >
+                {isExporting ? (
+                  <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4">
+                    <div className="h-2 w-full rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-[#DADADA]"
+                        style={{ width: `${Math.round(exportProgress * 100)}%`, transition: "width 0.15s" }}
+                      />
+                    </div>
+                    <p className="text-xs text-white/50">{Math.round(exportProgress * 100)}%</p>
+                  </div>
+                ) : showExportOptions && activeTab === "image" ? (
+                  <div className="flex flex-1 gap-1" style={{ height: "100%" }}>
                     <button
-                      key={preset.key}
                       type="button"
-                      onClick={() => applyPreset(preset.key)}
-                      className="transition-colors hover:bg-white/10"
+                      disabled={!asciiData}
+                      onClick={() => { downloadAsciiPng(1); setShowExportOptions(false) }}
+                      className="skeu-btn flex-1 text-center disabled:opacity-40"
                       style={{
-                        padding: "16px 24px",
                         borderRadius: 967,
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.02)",
-                        fontFamily: "'Geist Mono', monospace",
-                        fontSize: 14,
-                        fontWeight: 500,
+                        boxShadow: SKEU_BTN_SHADOW,
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: 15,
+                        fontWeight: 400,
+                        letterSpacing: "-0.04em",
                         color: "#F2F2F2",
                       }}
                     >
-                      {preset.label}
+                      PNG X1
                     </button>
-                  ))}
-                </div>
-
-                <div style={{ height: 40 }} />
-              </div>
-              <div
-                className="pointer-events-none absolute inset-x-0 bottom-0 transition-opacity duration-200"
-                style={{
-                  height: 168,
-                  background: "linear-gradient(180deg, rgba(13,13,13,0) 0%, rgba(13,13,13,1) 93%)",
-                  opacity: optionsAtBottom ? 0 : 1,
-                }}
-              />
-            </div>
-
-            {/* Export bar — h=88 */}
-            <div
-              className="flex shrink-0 items-center"
-              style={{ height: 88, borderRadius: 48, background: "#0D0D0D", padding: 6 }}
-            >
-              {isExporting ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4">
-                  <div className="h-2 w-full rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-[#DADADA]"
-                      style={{ width: `${Math.round(exportProgress * 100)}%`, transition: "width 0.15s" }}
-                    />
+                    <button
+                      type="button"
+                      disabled={!asciiData}
+                      onClick={() => { downloadAsciiPng(2); setShowExportOptions(false) }}
+                      className="skeu-btn flex-1 text-center disabled:opacity-40"
+                      style={{
+                        borderRadius: 967,
+                        boxShadow: SKEU_BTN_SHADOW,
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: 15,
+                        fontWeight: 400,
+                        letterSpacing: "-0.04em",
+                        color: "#F2F2F2",
+                      }}
+                    >
+                      PNG X2
+                    </button>
                   </div>
-                  <p className="text-xs text-white/50">{Math.round(exportProgress * 100)}%</p>
-                </div>
-              ) : showExportOptions && activeTab === "image" ? (
-                <div className="flex flex-1 gap-1" style={{ height: "100%" }}>
-                  <button
-                    type="button"
-                    disabled={!asciiData}
-                    onClick={() => { downloadAsciiPng(1); setShowExportOptions(false) }}
-                    className="skeu-btn flex-1 text-center disabled:opacity-40"
-                    style={{
-                      borderRadius: 967,
-                      boxShadow: SKEU_BTN_SHADOW,
-                      fontFamily: "Inter, sans-serif",
-                      fontSize: 15,
-                      fontWeight: 400,
-                      letterSpacing: "-0.04em",
-                      color: "#F2F2F2",
-                    }}
-                  >
-                    PNG X1
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!asciiData}
-                    onClick={() => { downloadAsciiPng(2); setShowExportOptions(false) }}
-                    className="skeu-btn flex-1 text-center disabled:opacity-40"
-                    style={{
-                      borderRadius: 967,
-                      boxShadow: SKEU_BTN_SHADOW,
-                      fontFamily: "Inter, sans-serif",
-                      fontSize: 15,
-                      fontWeight: 400,
-                      letterSpacing: "-0.04em",
-                      color: "#F2F2F2",
-                    }}
-                  >
-                    PNG X2
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-1 gap-1" style={{ height: "100%" }}>
-                  <button
-                    type="button"
-                    onClick={() => inputRef.current?.click()}
-                    className="skeu-btn flex items-center justify-center"
-                    style={{
-                      width: 76,
-                      borderRadius: 967,
-                      boxShadow: SKEU_BTN_SHADOW,
-                    }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                      <path d="M9 2.25V15.75M2.25 9H15.75" stroke="#F2F2F2" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!asciiData}
-                    onClick={handleExportClick}
-                    className="skeu-btn flex-1 text-center disabled:opacity-40"
-                    style={{
-                      borderRadius: 967,
-                      boxShadow: SKEU_BTN_SHADOW,
-                      fontFamily: "Inter, sans-serif",
-                      fontSize: 15,
-                      fontWeight: 400,
-                      letterSpacing: "-0.04em",
-                      color: "#F2F2F2",
-                    }}
-                  >
-                    {activeTab === "image" ? "Export" : "Export MP4"}
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <div className="flex flex-1 gap-1" style={{ height: "100%" }}>
+                    <button
+                      type="button"
+                      onClick={() => inputRef.current?.click()}
+                      className="skeu-btn flex items-center justify-center"
+                      style={{
+                        width: 76,
+                        borderRadius: 967,
+                        boxShadow: SKEU_BTN_SHADOW,
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M9 2.25V15.75M2.25 9H15.75" stroke="#F2F2F2" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!asciiData}
+                      onClick={handleExportClick}
+                      className="skeu-btn flex-1 text-center disabled:opacity-40"
+                      style={{
+                        borderRadius: 967,
+                        boxShadow: SKEU_BTN_SHADOW,
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: 15,
+                        fontWeight: 400,
+                        letterSpacing: "-0.04em",
+                        color: "#F2F2F2",
+                      }}
+                    >
+                      {activeTab === "image" ? "Export" : "Export MP4"}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       <input
@@ -1434,6 +1677,388 @@ function App() {
         className="hidden"
         onChange={handleUploadChange}
       />
+    </div>
+  )
+}
+
+function MobileLayout({
+  inputRef, previewContainerRef, previewCanvasRef, mobileScrollRef, mobileHeaderRef,
+  activeTab, setActiveTab, imageUrl, asciiData, contentAnchorSize, fitScale, userZoom, pan,
+  isInverted, setIsInverted, isColorInverted, setIsColorInverted, isPanningRef,
+  scale, setScale, size, setSize, variation, setVariation, contrast, setContrast,
+  brightness, setBrightness, depth, setDepth,
+  animChaos, setAnimChaos, animAmplitude, setAnimAmplitude, animDensity, setAnimDensity,
+  isExporting, exportProgress, showExportOptions, setShowExportOptions,
+  handleExportClick, downloadAsciiPng, applyPreset,
+  handleDragEnter, handleDragOver, handleDragLeave, handleDrop,
+  handlePreviewWheel, handlePreviewMouseDown, handlePreviewMouseMove, stopPanning,
+  setIsMenuOpen, mobilePreviewStuck, setMobilePreviewStuck, mobileOptionsFadeTop, setMobileOptionsFadeTop,
+}) {
+  const stickyBarHeight = 42 + 12 + 16
+  const homeIndicatorH = 0
+
+  const handleMobileScroll = useCallback((e) => {
+    const el = e.currentTarget
+    const headerEl = mobileHeaderRef.current
+    if (!headerEl) return
+    const headerBottom = headerEl.offsetTop + headerEl.offsetHeight
+    setMobilePreviewStuck(el.scrollTop >= headerBottom)
+    setMobileOptionsFadeTop(el.scrollTop > headerBottom + 40)
+  }, [mobileHeaderRef, setMobilePreviewStuck, setMobileOptionsFadeTop])
+
+  return (
+    <div className="relative flex h-full flex-col overflow-hidden">
+      {/* Scrollable area */}
+      <div
+        ref={mobileScrollRef}
+        className="flex-1 overflow-y-auto hide-scrollbar"
+        style={{ paddingBottom: stickyBarHeight + homeIndicatorH + 8 }}
+        onScroll={handleMobileScroll}
+      >
+        {/* Header (no bg on mobile) */}
+        <div
+          ref={mobileHeaderRef}
+          className="flex items-center justify-between"
+          style={{ height: 56, paddingLeft: 16, paddingRight: 10 }}
+        >
+          <div className="flex h-[40px] w-[40px] items-center justify-center">
+            <LogoIcon />
+          </div>
+          <p
+            className="text-[16px] font-normal tracking-[-0.02em] text-[#BABABA]/60"
+            style={{ fontFamily: "'Geist Mono', monospace" }}
+          >
+            asciifast
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen(true)}
+            className="flex h-[40px] w-[40px] items-center justify-center transition-opacity hover:opacity-80"
+          >
+            <MenuSvgIcon />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ padding: "8px 20px" }}>
+          <div
+            className="relative flex items-center"
+            style={{ height: 52, borderRadius: 96, background: "#0D0D0D", padding: 4 }}
+          >
+            <div
+              className="pointer-events-none absolute transition-[left] duration-250 ease-[cubic-bezier(0.4,0,0.2,1)]"
+              style={{
+                width: "calc(50% - 4px)",
+                height: "calc(100% - 8px)",
+                top: 4,
+                left: activeTab === "image" ? 4 : "calc(50%)",
+                borderRadius: 967,
+                background: "rgba(255,255,255,0.1)",
+                boxShadow: SKEU_TAB_SHADOW,
+              }}
+            />
+            {["image", "video"].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className="relative z-10 flex-1 text-center transition-colors duration-200"
+                style={{
+                  height: "100%",
+                  borderRadius: 967,
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 400,
+                  letterSpacing: "-0.04em",
+                  color: activeTab === tab ? "#F2F2F2" : "#BABABA",
+                }}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Preview area */}
+        <div style={{ padding: "8px 12px 0 12px" }}>
+          <div
+            className="relative overflow-hidden rounded-[20px] sticky top-0 z-20"
+            style={{ padding: 1, background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)" }}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div
+              className="rounded-[19px] overflow-hidden"
+              style={{
+                background: "linear-gradient(180deg, rgba(23,23,23,1) 0%, rgba(21,21,21,1) 100%)",
+                aspectRatio: "1 / 1",
+              }}
+            >
+              <div className="m-[6px] rounded-[14px] overflow-hidden h-[calc(100%-12px)]">
+                <div
+                  ref={previewContainerRef}
+                  className="staggered-dots relative flex h-full w-full items-center justify-center overflow-hidden"
+                  style={{ cursor: imageUrl ? "grab" : "default", touchAction: "none" }}
+                  onWheel={imageUrl ? handlePreviewWheel : undefined}
+                  onMouseDown={imageUrl ? handlePreviewMouseDown : undefined}
+                  onMouseMove={imageUrl ? handlePreviewMouseMove : undefined}
+                  onMouseUp={imageUrl ? stopPanning : undefined}
+                  onMouseLeave={imageUrl ? stopPanning : undefined}
+                >
+                  {!imageUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => inputRef.current?.click()}
+                      className="flex items-center gap-2 rounded-full bg-white/[0.06] border border-white/[0.02] px-3 py-2 text-[13px] font-medium text-[#F2F2F2] backdrop-blur-[24px] transition-colors hover:bg-white/10"
+                      style={{ fontFamily: "'Geist Mono', monospace" }}
+                    >
+                      + Upload image
+                    </button>
+                  ) : (
+                    <div
+                      className={`absolute overflow-hidden rounded ${isInverted ? "bg-black" : "bg-white"}`}
+                      style={{
+                        width: contentAnchorSize ? `${contentAnchorSize.width * fitScale * userZoom}px` : "100%",
+                        height: contentAnchorSize ? `${contentAnchorSize.height * fitScale * userZoom}px` : "100%",
+                        left: "50%",
+                        top: "50%",
+                        transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px))`,
+                      }}
+                    >
+                      <canvas
+                        ref={previewCanvasRef}
+                        style={{ display: "block", width: "100%", height: "100%" }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Shade marker */}
+        <div className="flex justify-center" style={{ padding: "8px 0" }}>
+          <div style={{ width: 24, height: 4, borderRadius: 2, background: "#333333" }} />
+        </div>
+
+        {/* Options (scrollable content) */}
+        <div className="relative" style={{ padding: "0 20px" }}>
+          {/* Fade overlay at top of options */}
+          <div
+            className="pointer-events-none sticky top-0 z-10 transition-opacity duration-200"
+            style={{
+              height: 40,
+              marginBottom: -40,
+              background: "linear-gradient(180deg, #050505 0%, transparent 100%)",
+              opacity: mobileOptionsFadeTop ? 1 : 0,
+            }}
+          />
+
+          {/* Dark Image Mode & Invert Colors */}
+          <div
+            className="flex flex-col gap-[18px] rounded-[16px] bg-[#0D0D0D] overflow-hidden"
+            style={{ padding: "18px 20px" }}
+          >
+            <div className="flex items-center justify-between">
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, fontWeight: 300, letterSpacing: "-0.01em", color: "#BCBCBC" }}>
+                Dark Image Mode
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsInverted((c) => !c)}
+                className="relative shrink-0 rounded-full transition-colors"
+                style={{ width: 36, height: 20, background: isInverted ? "#E6E6E6" : "#333" }}
+              >
+                <span
+                  className="absolute top-[2px] block rounded-full transition-[left] duration-200"
+                  style={{ width: 16, height: 16, background: isInverted ? "#0D0D0D" : "#888", left: isInverted ? 18 : 2 }}
+                />
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 13, fontWeight: 300, letterSpacing: "-0.01em", color: "#BCBCBC" }}>
+                Invert Colors
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsColorInverted((c) => !c)}
+                className="relative shrink-0 rounded-full transition-colors"
+                style={{ width: 36, height: 20, background: isColorInverted ? "#E6E6E6" : "#333" }}
+              >
+                <span
+                  className="absolute top-[2px] block rounded-full transition-[left] duration-200"
+                  style={{ width: 16, height: 16, background: isColorInverted ? "#0D0D0D" : "#888", left: isColorInverted ? 18 : 2 }}
+                />
+              </button>
+            </div>
+          </div>
+
+          <div style={{ height: 16 }} />
+
+          {/* Video sliders */}
+          {activeTab === "video" && (
+            <>
+              <div className="rounded-[16px] bg-[#0D0D0D] overflow-hidden" style={{ padding: "18px 20px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <SliderRow label="Chaos" value={animChaos} onChange={setAnimChaos} fontSize={13} />
+                  <SliderRow label="Amplitude" value={animAmplitude} onChange={setAnimAmplitude} fontSize={13} />
+                  <SliderRow label="Animation density" value={animDensity} onChange={setAnimDensity} fontSize={13} />
+                </div>
+              </div>
+              <div style={{ height: 16 }} />
+            </>
+          )}
+
+          {/* Sliders panel */}
+          <div className="rounded-[16px] bg-[#0D0D0D] overflow-hidden" style={{ padding: "18px 20px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <SliderRow label="Scale" value={scale} onChange={setScale} fontSize={13} />
+              <SliderRow label="Size" value={size} onChange={setSize} fontSize={13} />
+              <SliderRow label="Variation" value={variation} onChange={setVariation} fontSize={13} />
+              <SliderRow label="Contrast" value={contrast} onChange={setContrast} fontSize={13} />
+              <SliderRow label="Brightness" value={brightness} onChange={setBrightness} fontSize={13} />
+              <SliderRow label="Depth" value={depth} onChange={setDepth} fontSize={13} />
+            </div>
+          </div>
+
+          <div style={{ height: 16 }} />
+
+          {/* Preset buttons */}
+          <div className="grid grid-cols-2" style={{ rowGap: 6, columnGap: 6 }}>
+            {PRESET_BUTTONS.map((preset) => (
+              <button
+                key={preset.key}
+                type="button"
+                onClick={() => applyPreset(preset.key)}
+                className="transition-colors hover:bg-white/10"
+                style={{
+                  padding: "14px 20px",
+                  borderRadius: 967,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.02)",
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "#F2F2F2",
+                }}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ height: 24 }} />
+        </div>
+      </div>
+
+      {/* Sticky bottom export bar */}
+      <div
+        className="absolute inset-x-0 bottom-0 z-30 safe-bottom"
+        style={{
+          background: "linear-gradient(180deg, #212121 0%, #050505 100%)",
+          borderRadius: "28px 28px 0 0",
+        }}
+      >
+        <div
+          className="flex items-center"
+          style={{ height: 42, padding: "12px 12px 0 12px", gap: 4 }}
+        >
+          {isExporting ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4" style={{ height: 42 }}>
+              <div className="h-2 w-full rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-[#DADADA]"
+                  style={{ width: `${Math.round(exportProgress * 100)}%`, transition: "width 0.15s" }}
+                />
+              </div>
+              <p className="text-xs text-white/50">{Math.round(exportProgress * 100)}%</p>
+            </div>
+          ) : showExportOptions && activeTab === "image" ? (
+            <>
+              <button
+                type="button"
+                disabled={!asciiData}
+                onClick={() => { downloadAsciiPng(1); setShowExportOptions(false) }}
+                className="skeu-btn flex-1 text-center disabled:opacity-40"
+                style={{
+                  height: 42,
+                  borderRadius: 967,
+                  boxShadow: SKEU_BTN_SHADOW,
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 400,
+                  letterSpacing: "-0.04em",
+                  color: "#F2F2F2",
+                }}
+              >
+                PNG X1
+              </button>
+              <button
+                type="button"
+                disabled={!asciiData}
+                onClick={() => { downloadAsciiPng(2); setShowExportOptions(false) }}
+                className="skeu-btn flex-1 text-center disabled:opacity-40"
+                style={{
+                  height: 42,
+                  borderRadius: 967,
+                  boxShadow: SKEU_BTN_SHADOW,
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 400,
+                  letterSpacing: "-0.04em",
+                  color: "#F2F2F2",
+                }}
+              >
+                PNG X2
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="skeu-btn flex items-center justify-center"
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 967,
+                  boxShadow: SKEU_BTN_SHADOW,
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+                  <path d="M9 2.25V15.75M2.25 9H15.75" stroke="#F2F2F2" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                disabled={!asciiData}
+                onClick={handleExportClick}
+                className="skeu-btn flex-1 text-center disabled:opacity-40"
+                style={{
+                  height: 42,
+                  borderRadius: 967,
+                  boxShadow: SKEU_BTN_SHADOW,
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: 14,
+                  fontWeight: 400,
+                  letterSpacing: "-0.04em",
+                  color: "#F2F2F2",
+                }}
+              >
+                {activeTab === "image" ? "Export" : "Export MP4"}
+              </button>
+            </>
+          )}
+        </div>
+        {/* Home indicator */}
+        <div style={{ height: 16, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 4 }}>
+          <div className="mobile-home-indicator" />
+        </div>
+      </div>
     </div>
   )
 }

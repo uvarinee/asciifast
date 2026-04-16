@@ -150,6 +150,16 @@ button {
   transform: none;
 }
 
+.menu-pill-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.02);
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+.menu-pill-btn:hover {
+  background: rgba(255,255,255,0.13);
+}
+
 .menu-tile {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.02);
@@ -195,4 +205,18 @@ button.menu-tile:hover {
 }
 .menu-scrollbar::-webkit-scrollbar-button {
   display: none;
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+.mobile-home-indicator {
+  width: 134px;
+  height: 5px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.25);
+  margin: 0 auto;
 }
