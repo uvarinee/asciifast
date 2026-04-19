@@ -230,8 +230,8 @@ function MenuModal({ isOpen, onClose, isMobile }) {
 
   function renderContent() {
     if (activeSection === "onboarding") return <OnboardingContent isMobile={isMobile} />
-    if (activeSection === "about") return <AboutVersionContent />
-    if (activeSection === "support") return <SupportContent />
+    if (activeSection === "about") return <AboutVersionContent isMobile={isMobile} />
+    if (activeSection === "support") return <SupportContent isMobile={isMobile} />
     return null
   }
 
@@ -301,7 +301,7 @@ function MenuModal({ isOpen, onClose, isMobile }) {
                     setMenuAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 8)
                   } : undefined}
                 >
-                  <div style={{ padding: "20px 16px 28px 16px" }}>
+                  <div style={{ padding: activeSection === "onboarding" ? "20px 16px 28px 16px" : "24px" }}>
                     {renderContent()}
                   </div>
                 </div>
@@ -539,7 +539,7 @@ function OnboardingSection({ title, imageSrc, imageAlt, children, isMobile }) {
           <p
             style={{
               fontFamily: "'Geist Mono', monospace",
-              fontSize: isMobile ? 13 : 15,
+              fontSize: isMobile ? 14 : 15,
               lineHeight: "1.37em",
               fontWeight: 300,
               letterSpacing: "-0.01em",
@@ -573,13 +573,14 @@ function OnboardingContent({ isMobile }) {
   )
 }
 
-function AboutVersionContent() {
+function AboutVersionContent({ isMobile }) {
+  const fontSize = isMobile ? 14 : 15
   return (
-    <div style={{ padding: "0 32px 0 16px" }}>
+    <div style={{ padding: isMobile ? "0" : "0 32px 0 16px" }}>
       <p
         style={{
           fontFamily: "'Geist Mono', monospace",
-          fontSize: 15,
+          fontSize,
           lineHeight: "1.37em",
           fontWeight: 300,
           letterSpacing: "-0.01em",
@@ -591,12 +592,12 @@ function AboutVersionContent() {
       <p
         style={{
           fontFamily: "'Geist Mono', monospace",
-          fontSize: 15,
+          fontSize,
           lineHeight: "1.37em",
           fontWeight: 300,
           letterSpacing: "-0.01em",
           color: "#BCBCBC",
-          marginTop: 20,
+          marginTop: isMobile ? 16 : 20,
         }}
       >
         Controls have been redesigned with clearer naming and better sensitivity, making it easier to fine-tune the ASCII style and explore variations.
@@ -605,13 +606,14 @@ function AboutVersionContent() {
   )
 }
 
-function SupportContent() {
+function SupportContent({ isMobile }) {
+  const fontSize = isMobile ? 14 : 15
   return (
-    <div style={{ padding: "0 32px 0 16px" }}>
+    <div style={{ padding: isMobile ? "0" : "0 32px 0 16px" }}>
       <p
         style={{
           fontFamily: "'Geist Mono', monospace",
-          fontSize: 15,
+          fontSize,
           lineHeight: "1.37em",
           fontWeight: 300,
           letterSpacing: "-0.01em",
@@ -627,10 +629,10 @@ function SupportContent() {
         className="menu-pill-btn"
         style={{
           display: "inline-block",
-          marginTop: 20,
+          marginTop: isMobile ? 16 : 20,
           padding: "9px 16px 10px 16px",
           fontFamily: "'Geist Mono', monospace",
-          fontSize: 14,
+          fontSize: isMobile ? 13 : 14,
           fontWeight: 500,
           color: "#F2F2F2",
           textDecoration: "none",
@@ -1263,26 +1265,35 @@ function App() {
             isSplashFading ? "opacity-0 duration-200" : "opacity-100 duration-0"
           }`}
         >
-          <div className="flex flex-col items-center" style={{ gap: isMobile ? 22 : 28 }}>
-            <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: isMobile ? 22 : 28, letterSpacing: "-1.12px", textAlign: "center" }}>
-              <span className="text-white">ascii</span>
-              <span style={{ color: "rgba(255,255,255,0.5)" }}>fast</span>
-            </p>
-            <div className="flex flex-col items-center" style={{ gap: isMobile ? 12 : 20 }}>
-              <img
-                src="/splash-image.png"
-                alt="asciifast splash mark"
-                style={{ width: isMobile ? 120 : 200, height: isMobile ? 120 : 200, borderRadius: isMobile ? 28 : 48, objectFit: "cover" }}
-              />
-              <div className="h-[8px] rounded-[4px] bg-[#2E2E2E]" style={{ width: isMobile ? 120 : 160 }}>
+          <div className="flex flex-col items-center" style={{ gap: isMobile ? 16 : 24 }}>
+            <img
+              src="/splash-image.png"
+              alt="asciifast splash mark"
+              style={{ width: isMobile ? 120 : 200, height: isMobile ? 120 : 200, borderRadius: isMobile ? 28 : 48, objectFit: "cover" }}
+            />
+            <div className="flex flex-col items-center" style={{ gap: isMobile ? 12 : 16 }}>
+              <p
+                style={{
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: isMobile ? 12 : 14,
+                  fontWeight: 400,
+                  letterSpacing: "-0.04em",
+                  textAlign: "center",
+                  lineHeight: "1.25em",
+                }}
+              >
+                <span style={{ color: "#F8F8F8" }}>asciifast</span>
+                <span style={{ color: "#7E7E7E" }}> 3.0</span>
+              </p>
+              <div
+                className="rounded-full bg-[#2E2E2E] overflow-hidden"
+                style={{ width: isMobile ? 100 : 160, height: isMobile ? 6 : 8 }}
+              >
                 <div
-                  className="h-full rounded-[19px] bg-[linear-gradient(90deg,#747474_0%,#F8F8F8_100%)]"
+                  className="h-full rounded-full bg-[linear-gradient(90deg,#747474_0%,#F8F8F8_100%)]"
                   style={{ width: `${splashProgress * 100}%` }}
                 />
               </div>
-              <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: 14, letterSpacing: "-1.12px", color: "#7E7E7E", textAlign: "center" }}>
-                3.0
-              </p>
             </div>
           </div>
         </section>
@@ -1694,8 +1705,7 @@ function MobileLayout({
   handlePreviewWheel, handlePreviewMouseDown, handlePreviewMouseMove, stopPanning,
   setIsMenuOpen, mobilePreviewStuck, setMobilePreviewStuck, mobileOptionsFadeTop, setMobileOptionsFadeTop,
 }) {
-  const stickyBarHeight = 42 + 12 + 16
-  const homeIndicatorH = 0
+  const stickyBarHeight = 94
 
   const handleMobileScroll = useCallback((e) => {
     const el = e.currentTarget
@@ -1712,7 +1722,7 @@ function MobileLayout({
       <div
         ref={mobileScrollRef}
         className="flex-1 overflow-y-auto hide-scrollbar"
-        style={{ paddingBottom: stickyBarHeight + homeIndicatorH + 8 }}
+        style={{ paddingBottom: stickyBarHeight + 16 }}
         onScroll={handleMobileScroll}
       >
         {/* Header (no bg on mobile) */}
@@ -1779,10 +1789,13 @@ function MobileLayout({
           </div>
         </div>
 
-        {/* Preview area */}
-        <div style={{ padding: "8px 12px 0 12px" }}>
+        {/* Preview area (sticky) */}
+        <div
+          className="sticky top-0 z-20"
+          style={{ padding: "8px 20px 0 20px", background: "#050505" }}
+        >
           <div
-            className="relative overflow-hidden rounded-[20px] sticky top-0 z-20"
+            className="relative overflow-hidden rounded-[24px]"
             style={{ padding: 1, background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%)" }}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
@@ -1790,13 +1803,13 @@ function MobileLayout({
             onDrop={handleDrop}
           >
             <div
-              className="rounded-[19px] overflow-hidden"
+              className="rounded-[23px] overflow-hidden"
               style={{
                 background: "linear-gradient(180deg, rgba(23,23,23,1) 0%, rgba(21,21,21,1) 100%)",
                 aspectRatio: "1 / 1",
               }}
             >
-              <div className="m-[6px] rounded-[14px] overflow-hidden h-[calc(100%-12px)]">
+              <div className="m-[8px] rounded-[16px] overflow-hidden h-[calc(100%-16px)]">
                 <div
                   ref={previewContainerRef}
                   className="staggered-dots relative flex h-full w-full items-center justify-center overflow-hidden"
@@ -1837,26 +1850,23 @@ function MobileLayout({
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Shade marker */}
-        <div className="flex justify-center" style={{ padding: "8px 0" }}>
-          <div style={{ width: 24, height: 4, borderRadius: 2, background: "#333333" }} />
+          {/* Shade marker + bottom fade attached to sticky preview */}
+          <div className="flex justify-center relative" style={{ padding: "8px 0" }}>
+            <div style={{ width: 24, height: 4, borderRadius: 2, background: "#333333" }} />
+            <div
+              className="pointer-events-none absolute left-0 right-0 transition-opacity duration-200"
+              style={{
+                top: "100%",
+                height: 24,
+                background: "linear-gradient(180deg, #050505 0%, rgba(5,5,5,0) 100%)",
+                opacity: mobilePreviewStuck ? 1 : 0,
+              }}
+            />
+          </div>
         </div>
 
         {/* Options (scrollable content) */}
         <div className="relative" style={{ padding: "0 20px" }}>
-          {/* Fade overlay at top of options */}
-          <div
-            className="pointer-events-none sticky top-0 z-10 transition-opacity duration-200"
-            style={{
-              height: 40,
-              marginBottom: -40,
-              background: "linear-gradient(180deg, #050505 0%, transparent 100%)",
-              opacity: mobileOptionsFadeTop ? 1 : 0,
-            }}
-          />
-
           {/* Dark Image Mode & Invert Colors */}
           <div
             className="flex flex-col gap-[18px] rounded-[16px] bg-[#0D0D0D] overflow-hidden"
@@ -1958,13 +1968,13 @@ function MobileLayout({
       <div
         className="absolute inset-x-0 bottom-0 z-30 safe-bottom"
         style={{
-          background: "linear-gradient(180deg, #212121 0%, #050505 100%)",
+          background: "linear-gradient(180deg, #212121 6%, #050505 100%)",
           borderRadius: "28px 28px 0 0",
         }}
       >
         <div
-          className="flex items-center"
-          style={{ height: 42, padding: "12px 12px 0 12px", gap: 4 }}
+          className="flex items-stretch"
+          style={{ height: 42, padding: "12px 12px 0 12px", gap: 4, boxSizing: "content-box" }}
         >
           {isExporting ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4" style={{ height: 42 }}>
@@ -2055,7 +2065,7 @@ function MobileLayout({
           )}
         </div>
         {/* Home indicator */}
-        <div style={{ height: 16, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 4 }}>
+        <div style={{ height: 40, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div className="mobile-home-indicator" />
         </div>
       </div>
