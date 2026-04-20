@@ -1705,7 +1705,7 @@ function MobileLayout({
   handlePreviewWheel, handlePreviewMouseDown, handlePreviewMouseMove, stopPanning,
   setIsMenuOpen, mobilePreviewStuck, setMobilePreviewStuck, mobileOptionsFadeTop, setMobileOptionsFadeTop,
 }) {
-  const stickyBarHeight = 94
+  const stickyBarHeight = 66
 
   const handleMobileScroll = useCallback((e) => {
     const el = e.currentTarget
@@ -2065,7 +2065,7 @@ function MobileLayout({
           )}
         </div>
         {/* Safe-area spacer (native home indicator lives here on iOS) */}
-        <div style={{ height: 40 }} />
+        <div style={{ height: 12 }} />
       </div>
     </div>
   )
