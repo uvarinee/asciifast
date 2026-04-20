@@ -3,9 +3,9 @@
 @import "shadcn/tailwind.css";
 
 :root {
-  --background: #101010;
+  --background: #050505;
   --foreground: #f8f8f8;
-  --card: #1a1a1a;
+  --card: #0D0D0D;
   --card-foreground: #f8f8f8;
   --popover: #1a1a1a;
   --popover-foreground: #f8f8f8;
@@ -105,4 +105,118 @@ button {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.staggered-dots {
+  background-color: #0F0F0F;
+  background-image:
+    radial-gradient(circle, rgba(144,144,144,0.25) 1px, transparent 1px),
+    radial-gradient(circle, rgba(144,144,144,0.25) 1px, transparent 1px);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+}
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.skeu-btn {
+  background: rgba(255,255,255,0.06);
+  transition: background 0.2s;
+}
+.skeu-btn:hover {
+  background: rgba(255,255,255,0.13);
+}
+
+.menu-close-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.02);
+  transition: background 0.2s;
+}
+.menu-close-btn:hover {
+  background: rgba(255,255,255,0.13);
+}
+.menu-close-btn img {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.menu-close-btn:hover img {
+  transform: rotate(180deg);
+}
+.menu-close-btn.no-rotate:hover img {
+  transform: none;
+}
+
+.menu-pill-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.02);
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+.menu-pill-btn:hover {
+  background: rgba(255,255,255,0.13);
+}
+
+.menu-tile {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.02);
+  box-shadow: 0px 0px 4px 0px rgba(0,0,0,1);
+}
+button.menu-tile {
+  transition: background 0.2s;
+}
+button.menu-tile:hover {
+  background: rgba(255,255,255,0.13);
+}
+
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
+}
+.thin-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 16px;
+}
+
+.menu-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
+}
+.menu-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.menu-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+.menu-scrollbar::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 16px;
+}
+.menu-scrollbar::-webkit-scrollbar-button {
+  display: none;
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+.mobile-home-indicator {
+  width: 134px;
+  height: 5px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.25);
+  margin: 0 auto;
 }

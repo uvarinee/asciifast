@@ -27,25 +27,26 @@ function Slider({
       max={max}
       className={cn(
         "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
+        "h-4",
         className
       )}
       {...props}>
       <SliderPrimitive.Track
         data-slot="slider-track"
         className={cn(
-          "relative grow overflow-hidden rounded-full bg-[#2E2E2E] data-[orientation=horizontal]:h-[4px] data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-[4px]"
+          "relative grow overflow-visible rounded-full bg-[#333333] data-[orientation=horizontal]:h-[2px] data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-[2px]"
         )}>
         <SliderPrimitive.Range
           data-slot="slider-range"
           className={cn(
-            "absolute rounded-full bg-[linear-gradient(90deg,#747474_0%,#F8F8F8_100%)] data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
+            "absolute rounded-full bg-[#E6E6E6] data-[orientation=horizontal]:h-[10px] data-[orientation=horizontal]:top-[-4px] data-[orientation=vertical]:w-full"
           )} />
       </SliderPrimitive.Track>
       {Array.from({ length: _values.length }, (_, index) => (
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="block size-[14px] shrink-0 rounded-full border-0 bg-[#F8F8F8] shadow-none transition-[box-shadow,transform] hover:scale-[1.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:pointer-events-none disabled:opacity-50" />
+          className="block size-[16px] shrink-0 rounded-full bg-[#E6E6E6] shadow-[inset_0_0_0_2px_#0D0D0D] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50" />
       ))}
     </SliderPrimitive.Root>
   );
