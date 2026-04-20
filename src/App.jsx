@@ -222,7 +222,7 @@ function MenuModal({ isOpen, onClose, isMobile }) {
 
   function handleItemClick(key) {
     if (key === "feedback") {
-      window.open("#", "_blank")
+      window.open("https://forms.gle/CJavtH4Q3mAo4WGc7", "_blank", "noopener,noreferrer")
       return
     }
     setActiveSection(key)
@@ -1271,11 +1271,11 @@ function App() {
               alt="asciifast splash mark"
               style={{ width: isMobile ? 120 : 200, height: isMobile ? 120 : 200, borderRadius: isMobile ? 28 : 48, objectFit: "cover" }}
             />
-            <div className="flex flex-col items-center" style={{ gap: isMobile ? 12 : 16 }}>
+            <div className="flex flex-col items-center" style={{ gap: isMobile ? 12 : 18 }}>
               <p
                 style={{
                   fontFamily: "'Geist Mono', monospace",
-                  fontSize: isMobile ? 12 : 14,
+                  fontSize: isMobile ? 12 : 18,
                   fontWeight: 400,
                   letterSpacing: "-0.04em",
                   textAlign: "center",
@@ -2064,10 +2064,8 @@ function MobileLayout({
             </>
           )}
         </div>
-        {/* Home indicator */}
-        <div style={{ height: 40, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="mobile-home-indicator" />
-        </div>
+        {/* Safe-area spacer (native home indicator lives here on iOS) */}
+        <div style={{ height: 40 }} />
       </div>
     </div>
   )
